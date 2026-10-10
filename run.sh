@@ -1,22 +1,20 @@
 #!/bin/bash
 set -e
 
-echo "🔧 [run.sh] Memulai setup Zydra..."
-
-echo "⏳ Menunggu Ollama siap..."
+echo "Menunggu Ollama siap..."
 until curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; do
     sleep 1
 done
-echo "✅ Ollama siap"
+echo "Ollama siap"
 
-if ! ollama list | grep -q "llama3.2:1b"; then
-    echo "📥 Pull llama3.2:1b..."
-    ollama pull llama3.2:1b
+if ! ollama list | grep -q "qwen3-vl:2b"; then
+    echo "Pull qwen3-vl:2b..."
+    ollama pull qwen3-vl:2b
 else
-    echo "✓ llama3.2:1b sudah ada (dari volume)"
+    echo "qwen3-vl:2b sudah ada"
 fi
 
 echo "Membuat model Zydra..."
 ollama create zydra -f /root/Modelfile
 
-echo "✅ [run.sh] Setup selesai!"
+echo "Setup selesai"
