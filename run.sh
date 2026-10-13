@@ -3,6 +3,11 @@ set -Eeuo pipefail
 
 STATUS_FILE="${MODEL_STATUS_FILE:-/tmp/zydra-setup-status.json}"
 
+if ! command -v curl >/dev/null 2>&1; then
+    echo "curl tidak ditemukan; image container belum memasang dependency setup." >&2
+    exit 1
+fi
+
 write_status() {
     local stage="$1"
     local message="$2"
