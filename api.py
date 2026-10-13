@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 app = FastAPI(title="Zydra API", version="1.0.0")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
-AUTH = os.getenv("AUTH", "")
+AUTH_FILE = Path(os.getenv("AUTH_FILE", "/data/auth"))
 INSTRUCTIONS_FILE = Path(os.getenv("INSTRUCTIONS_FILE", "/data/instructions.txt"))
 MODEL_STATUS_FILE = Path(os.getenv("MODEL_STATUS_FILE", "/tmp/zydra-setup-status.json"))
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -28,6 +28,37 @@ DEFAULT_INSTRUCTIONS = (
     "Jawab dengan jelas, jujur, dan sopan. Gunakan Bahasa Indonesia jika pengguna "
     "menggunakan Bahasa Indonesia. Tolak permintaan yang berbahaya atau ilegal."
 )
+
+
+def load_or_create_auth() -> str:
+    configured_auth = os.getenv("AUTH", "").strip()
+    if configured_auth:
+        return configured_auth
+
+    try:
+        AUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
+        auth = secrets.token_urlsafe(32)
+        descriptor = os.open(AUTH_FILE, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as auth_file:
+            auth_file.write(auth)
+            auth_file.write("\n")
+            auth_file.flush()
+            os.fsync(auth_file.fileno())
+        print(f"AUTH dibuat otomatis. Simpan password ini: {auth}", flush=True)
+        return auth
+    except FileExistsError:
+        try:
+            auth = AUTH_FILE.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise RuntimeError(f"Gagal membaca AUTH dari {AUTH_FILE}: {exc}") from exc
+        if not auth:
+            raise RuntimeError(f"File AUTH {AUTH_FILE} kosong; hapus file tersebut untuk membuat AUTH baru")
+        return auth
+    except OSError as exc:
+        raise RuntimeError(f"Gagal membuat AUTH di {AUTH_FILE}: {exc}") from exc
+
+
+AUTH = load_or_create_auth()
 
 
 class ContentPart(BaseModel):

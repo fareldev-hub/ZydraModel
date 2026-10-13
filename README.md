@@ -8,13 +8,17 @@ dalam satu container/service Railway.
 
 1. Buat service Railway dari repository ini. Railway akan menggunakan `Dockerfile`
    dan konfigurasi di `railway.toml`.
-2. Tambahkan **Volume** dan mount pada `/data`. Volume menyimpan model Ollama dan
-   system instructions agar tetap ada setelah restart/deploy.
-3. Tambahkan variable `AUTH` dengan password yang kuat. Password yang sama digunakan
-   untuk membuka playground dan autentikasi API. Semua endpoint `/v1/*`
-   memerlukan password tersebut melalui header `Authorization` (Bearer) atau `X-API-Key`.
-4. Pastikan variable `OLLAMA_URL` tidak diarahkan ke service lain; default
-   `http://localhost:11434` menghubungkan API ke Ollama di container yang sama.
+2. Tambahkan **Volume** dan mount pada `/data`. Volume menyimpan model Ollama,
+   system instructions, dan password otomatis agar tetap ada setelah restart/deploy.
+3. Variable non-rahasia seperti `OLLAMA_URL`, `INSTRUCTIONS_FILE`, dan
+   `MODEL_STATUS_FILE` sudah memiliki default di image. Pastikan `OLLAMA_URL`
+   tidak dioverride ke service lain.
+4. `AUTH` dibuat secara acak saat boot pertama jika variable `AUTH` tidak disetel.
+   Password ditampilkan **satu kali** di log deploy saat dibuat. Simpan password
+   itu untuk UI dan API; proses berikutnya membaca password dari volume `/data`.
+   Semua endpoint `/v1/*` memerlukan password tersebut melalui header
+   `Authorization` (Bearer) atau `X-API-Key`. Anda juga bisa menetapkan `AUTH`
+   sendiri melalui Railway Variables untuk menimpa password otomatis.
 5. Deploy. Saat pertama kali berjalan, container mengunduh `qwen3-vl:2b` dan
    membuat model `zydra`; simpan model pada Railway Volume `/data`. Saat setup
    masih berlangsung, chat menjawab dengan status model sedang disiapkan (503),
@@ -26,6 +30,9 @@ Railway menyediakan `PORT` secara otomatis. API bind ke port tersebut dan
 meneruskan permintaan ke Ollama lokal. Ollama menyimpan model di `/data/ollama`;
 volume yang dipasang pada `/data` mempertahankan model saat container di-deploy
 ulang. Tanpa volume, model akan diunduh kembali saat container dibuat ulang.
+Railway tidak menambahkan variable service dari `railway.toml` secara otomatis;
+default konfigurasi di atas disediakan oleh image aplikasi, sedangkan `AUTH`
+dibuat dan disimpan oleh aplikasi pada boot pertama jika tidak ditetapkan manual.
 `/status` dan `/health` melaporkan tahap setup (`waiting_for_ollama`,
 `downloading_base_model`, `creating_zydra_model`, `ready`, atau `failed`) dan
 apakah model `zydra` siap. Jika status `failed`, buka log deploy Railway untuk
@@ -39,11 +46,12 @@ yang cukup untuk menjalankan inferensi.
 
 ```sh
 docker build -t zydra .
-docker run --rm -p 8000:8000 -e AUTH="ganti-dengan-password-kuat" -v zydra-data:/data zydra
+docker run --rm -p 8000:8000 -v zydra-data:/data zydra
 ```
 
-Buka `http://localhost:8000` lalu masukkan password `AUTH`. Playground mengingat
-password hanya selama sesi tab browser; tutup tab untuk menghapusnya.
+Buka `http://localhost:8000`, ambil password otomatis dari log pertama, lalu
+masukkan ke playground. Atau set `AUTH` sendiri saat menjalankan Docker.
+Playground mengingat password hanya selama sesi tab browser; tutup tab untuk menghapusnya.
 
 ## API untuk developer
 
