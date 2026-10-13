@@ -18,7 +18,7 @@ dalam satu container/service Railway.
 5. Deploy. Saat pertama kali berjalan, container mengunduh `qwen3-vl:2b` dan
    membuat model `zydra`; simpan model pada Railway Volume `/data`. Saat setup
    masih berlangsung, chat menjawab dengan status model sedang disiapkan (503),
-   bukan error `model 'zydra' not found`; coba lagi setelah `/health` menunjukkan
+   beserta tahap setup saat ini. Cek `/status` atau `/health` dan coba lagi setelah
    `"model_ready": true`.
 6. Buka URL service Railway untuk mencoba playground.
 
@@ -26,7 +26,10 @@ Railway menyediakan `PORT` secara otomatis. API bind ke port tersebut dan
 meneruskan permintaan ke Ollama lokal. Ollama menyimpan model di `/data/ollama`;
 volume yang dipasang pada `/data` mempertahankan model saat container di-deploy
 ulang. Tanpa volume, model akan diunduh kembali saat container dibuat ulang.
-`/health` melaporkan apakah Ollama dapat dijangkau dan model `zydra` siap.
+`/status` dan `/health` melaporkan tahap setup (`waiting_for_ollama`,
+`downloading_base_model`, `creating_zydra_model`, `ready`, atau `failed`) dan
+apakah model `zydra` siap. Jika status `failed`, buka log deploy Railway untuk
+melihat error dari perintah pull atau create.
 
 Jika chat gagal, API mengembalikan detail error dari Ollama. Periksa log deploy
 Railway untuk memastikan model `zydra` selesai dibuat dan service memiliki resource
@@ -62,6 +65,7 @@ Endpoint utama:
 | `GET` | `/v1/instructions` | Membaca system instructions aktif. |
 | `PUT` | `/v1/instructions` | Mengganti system instructions; JSON body: `{"instructions":"..."}`. Maksimum 20.000 karakter. |
 | `GET` | `/health` | Status container/API dan nilai `model_ready`. Tidak memerlukan API key. |
+| `GET` | `/status` | Tahap setup model dan pesan status terbaru; tidak memerlukan API key. |
 | `GET` | `/ready` | HTTP 200 hanya setelah model `zydra` siap; selain itu HTTP 503. |
 
 Instruksi tersimpan pada `/data/instructions.txt` secara default. Gunakan volume

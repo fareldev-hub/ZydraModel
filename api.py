@@ -21,6 +21,7 @@ app = FastAPI(title="Zydra API", version="1.0.0")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 AUTH = os.getenv("AUTH", "")
 INSTRUCTIONS_FILE = Path(os.getenv("INSTRUCTIONS_FILE", "/data/instructions.txt"))
+MODEL_STATUS_FILE = Path(os.getenv("MODEL_STATUS_FILE", "/tmp/zydra-setup-status.json"))
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 DEFAULT_INSTRUCTIONS = (
     "Anda adalah Zydra, asisten AI multimodal yang dikembangkan oleh Fareldev. "
@@ -252,11 +253,51 @@ def require_available_model(model: str) -> None:
     if any(name == model or name.startswith(f"{model}:") for name in model_names):
         return
     if model == "zydra":
+        setup_status = read_model_status(model_names)
         raise HTTPException(
             status_code=503,
-            detail="Model Zydra sedang disiapkan. Tunggu proses pull dan pembuatan model selesai, lalu coba lagi.",
+            detail=setup_status["message"],
         )
     raise HTTPException(status_code=404, detail=f"Model '{model}' tidak tersedia di Ollama")
+
+
+def read_model_status(model_names: Optional[List[str]] = None) -> Dict[str, Any]:
+    try:
+        setup_status = json.loads(MODEL_STATUS_FILE.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        setup_status = {
+            "stage": "starting",
+            "message": "Status setup belum tersedia. Periksa log deploy Railway.",
+        }
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail=f"Gagal membaca status setup model: {exc}")
+
+    if not isinstance(setup_status, dict):
+        raise HTTPException(status_code=500, detail="Format status setup model tidak valid")
+
+    if model_names is None:
+        try:
+            model_names = available_ollama_models()
+        except HTTPException as exc:
+            if setup_status.get("stage") != "failed":
+                setup_status = {
+                    "stage": "ollama_unavailable",
+                    "message": exc.detail,
+                }
+            setup_status["model_ready"] = False
+            return setup_status
+
+    model_ready = any(name == "zydra" or name.startswith("zydra:") for name in model_names)
+    if model_ready:
+        setup_status = {"stage": "ready", "message": "Model Zydra siap."}
+    elif setup_status.get("stage") == "ready":
+        setup_status = {
+            "stage": "model_missing",
+            "message": "Setup selesai tetapi model Zydra tidak ada di penyimpanan Ollama.",
+        }
+
+    setup_status["model_ready"] = model_ready
+    return setup_status
 
 
 def stream_completion(payload: Dict[str, Any], model: str, completion_id: str):
@@ -428,20 +469,26 @@ def update_instructions(
 
 @app.get("/health")
 def health():
-    try:
-        model_names = available_ollama_models()
-    except HTTPException:
-        return {"status": "ok", "model": "zydra", "model_ready": False}
+    setup_status = read_model_status()
+    return {
+        "status": "ok",
+        "model": "zydra",
+        "model_ready": setup_status["model_ready"],
+        "setup_stage": setup_status["stage"],
+        "setup_message": setup_status["message"],
+    }
 
-    model_ready = any(name == "zydra" or name.startswith("zydra:") for name in model_names)
-    return {"status": "ok", "model": "zydra", "model_ready": model_ready}
+
+@app.get("/status")
+def model_status():
+    return read_model_status()
 
 
 @app.get("/ready")
 def ready():
     health_status = health()
     if not health_status["model_ready"]:
-        return JSONResponse(status_code=503, content={"status": "starting", "model": "zydra"})
+        return JSONResponse(status_code=503, content=health_status)
     return health_status
 
 
