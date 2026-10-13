@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 app = FastAPI(title="Zydra API", version="1.0.0")
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
-API_KEY = os.getenv("API_KEY", "")
+AUTH = os.getenv("AUTH", "")
 INSTRUCTIONS_FILE = Path(os.getenv("INSTRUCTIONS_FILE", "/data/instructions.txt"))
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 DEFAULT_INSTRUCTIONS = (
@@ -55,8 +55,8 @@ class InstructionUpdate(BaseModel):
 
 
 def require_api_key(authorization: Optional[str], x_api_key: Optional[str]) -> None:
-    if not API_KEY:
-        raise HTTPException(status_code=503, detail="API_KEY belum dikonfigurasi")
+    if not AUTH:
+        raise HTTPException(status_code=503, detail="AUTH belum dikonfigurasi")
 
     bearer_key = ""
     if authorization:
@@ -65,7 +65,7 @@ def require_api_key(authorization: Optional[str], x_api_key: Optional[str]) -> N
             bearer_key = credentials
 
     supplied_key = x_api_key or bearer_key
-    if not secrets.compare_digest(supplied_key, API_KEY):
+    if not secrets.compare_digest(supplied_key, AUTH):
         raise HTTPException(status_code=401, detail="API key tidak valid")
 
 

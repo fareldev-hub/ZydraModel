@@ -10,8 +10,9 @@ untuk mengubah system instructions.
    dan konfigurasi di `railway.toml`.
 2. Tambahkan **Volume** dan mount pada `/data`. Volume ini menyimpan model Ollama
    dan instruksi agar tetap ada setelah restart/deploy.
-3. Tambahkan variable `API_KEY` dengan key acak yang kuat. Semua endpoint `/v1/*`
-   memerlukan key ini melalui `Authorization: Bearer <API_KEY>` atau `X-API-Key`.
+3. Tambahkan variable `AUTH` dengan password yang kuat. Password yang sama digunakan
+   untuk membuka playground dan autentikasi API. Semua endpoint `/v1/*`
+   memerlukan password tersebut melalui header `Authorization` (Bearer) atau `X-API-Key`.
 4. Deploy dan tunggu proses awal selesai. Container mengunduh model dasar pada
    boot pertama; `/health` tetap merespons selama proses itu, sedangkan
    `/health` mengembalikan `"model_ready": true` setelah model siap.
@@ -26,19 +27,19 @@ coba lagi setelah `model_ready` bernilai `true`.
 
 ```sh
 docker build -t zydra .
-docker run --rm -p 8000:8000 -e API_KEY="ganti-dengan-key-rahasia" -v zydra-data:/data zydra
+docker run --rm -p 8000:8000 -e AUTH="ganti-dengan-password-kuat" -v zydra-data:/data zydra
 ```
 
-Buka `http://localhost:8000`. Jangan gunakan atau membagikan API key produksi di
-browser publik.
+Buka `http://localhost:8000` lalu masukkan password `AUTH`. Playground mengingat
+password hanya selama sesi tab browser; tutup tab untuk menghapusnya.
 
 ## API untuk developer
 
-Semua contoh memakai API key melalui bearer authentication:
+Semua contoh memakai password `AUTH` melalui bearer authentication:
 
 ```sh
 curl http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer ganti-dengan-key-rahasia" \
+  -H "Authorization: Bearer ganti-dengan-password-kuat" \
   -H "Content-Type: application/json" \
   -d "{\"model\":\"zydra\",\"messages\":[{\"role\":\"user\",\"content\":\"Jelaskan fotosintesis secara singkat.\"}]}"
 ```
@@ -62,7 +63,7 @@ Contoh vision dengan URL gambar:
 
 ```sh
 curl http://localhost:8000/v1/chat/completions \
-  -H "Authorization: Bearer ganti-dengan-key-rahasia" \
+  -H "Authorization: Bearer ganti-dengan-password-kuat" \
   -H "Content-Type: application/json" \
   -d "{\"model\":\"zydra\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Apa yang terlihat pada gambar ini?\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"https://example.com/gambar.jpg\"}}]}]}"
 ```
