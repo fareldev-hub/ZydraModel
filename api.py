@@ -228,6 +228,37 @@ def format_tool_calls(tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return formatted_calls
 
 
+def available_ollama_models() -> List[str]:
+    try:
+        response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Ollama belum siap atau tidak dapat dijangkau: {exc}",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=f"Respons daftar model Ollama tidak valid: {exc}")
+
+    models = data.get("models")
+    if not isinstance(models, list):
+        raise HTTPException(status_code=502, detail="Respons daftar model Ollama tidak memiliki daftar models")
+    return [item.get("name", "") for item in models if isinstance(item, dict)]
+
+
+def require_available_model(model: str) -> None:
+    model_names = available_ollama_models()
+    if any(name == model or name.startswith(f"{model}:") for name in model_names):
+        return
+    if model == "zydra":
+        raise HTTPException(
+            status_code=503,
+            detail="Model Zydra sedang disiapkan. Tunggu proses pull dan pembuatan model selesai, lalu coba lagi.",
+        )
+    raise HTTPException(status_code=404, detail=f"Model '{model}' tidak tersedia di Ollama")
+
+
 def stream_completion(payload: Dict[str, Any], model: str, completion_id: str):
     try:
         with requests.post(
@@ -292,6 +323,7 @@ def chat(
     x_api_key: Optional[str] = Header(None),
 ):
     require_api_key(authorization, x_api_key)
+    require_available_model(req.model)
     ollama_messages = to_ollama_messages(req.messages)
     payload: Dict[str, Any] = {
         "model": req.model,
@@ -356,7 +388,14 @@ def models(
     x_api_key: Optional[str] = Header(None),
 ):
     require_api_key(authorization, x_api_key)
-    return {"object": "list", "data": [{"id": "zydra", "object": "model", "owned_by": "fareldev"}]}
+    model_names = available_ollama_models()
+    return {
+        "object": "list",
+        "data": [
+            {"id": name, "object": "model", "owned_by": "fareldev"}
+            for name in model_names
+        ],
+    }
 
 
 @app.get("/v1/instructions")
@@ -390,10 +429,8 @@ def update_instructions(
 @app.get("/health")
 def health():
     try:
-        response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=2)
-        response.raise_for_status()
-        model_names = [item.get("name", "") for item in response.json().get("models", [])]
-    except (requests.RequestException, ValueError):
+        model_names = available_ollama_models()
+    except HTTPException:
         return {"status": "ok", "model": "zydra", "model_ready": False}
 
     model_ready = any(name == "zydra" or name.startswith("zydra:") for name in model_names)

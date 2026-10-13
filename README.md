@@ -1,9 +1,8 @@
 # ZydraModel
 
 Zydra menyediakan API chat yang kompatibel dengan format OpenAI, playground web,
-dan API untuk mengubah system instructions. Container menjalankan API dan Ollama
-lokal bersama-sama. Service Ollama terpisah `https://ollama-run.up.railway.app`
-tetap dapat dipilih dengan mengatur `OLLAMA_URL`.
+dan API untuk mengubah system instructions. API dan Ollama berjalan bersama-sama
+dalam satu container/service Railway.
 
 ## Deploy ke Railway
 
@@ -14,21 +13,24 @@ tetap dapat dipilih dengan mengatur `OLLAMA_URL`.
 3. Tambahkan variable `AUTH` dengan password yang kuat. Password yang sama digunakan
    untuk membuka playground dan autentikasi API. Semua endpoint `/v1/*`
    memerlukan password tersebut melalui header `Authorization` (Bearer) atau `X-API-Key`.
-4. Hapus `OLLAMA_URL` dari Variables jika sebelumnya disetel ke
-   `https://ollama-run.up.railway.app`; default API adalah `http://localhost:11434`
-   dan container akan menjalankan Ollama sendiri. Jika ingin menggunakan service
-   Ollama terpisah, set `OLLAMA_URL` ke URL service tersebut dan pastikan model
-   `zydra` tersedia di sana.
+4. Pastikan variable `OLLAMA_URL` tidak diarahkan ke service lain; default
+   `http://localhost:11434` menghubungkan API ke Ollama di container yang sama.
 5. Deploy. Saat pertama kali berjalan, container mengunduh `qwen3-vl:2b` dan
-   membuat model `zydra`; simpan model pada Railway Volume `/data`.
+   membuat model `zydra`; simpan model pada Railway Volume `/data`. Saat setup
+   masih berlangsung, chat menjawab dengan status model sedang disiapkan (503),
+   bukan error `model 'zydra' not found`; coba lagi setelah `/health` menunjukkan
+   `"model_ready": true`.
 6. Buka URL service Railway untuk mencoba playground.
 
 Railway menyediakan `PORT` secara otomatis. API bind ke port tersebut dan
-meneruskan permintaan ke Ollama lokal. `/health` melaporkan apakah Ollama dapat
-dijangkau dan model `zydra` siap.
+meneruskan permintaan ke Ollama lokal. Ollama menyimpan model di `/data/ollama`;
+volume yang dipasang pada `/data` mempertahankan model saat container di-deploy
+ulang. Tanpa volume, model akan diunduh kembali saat container dibuat ulang.
+`/health` melaporkan apakah Ollama dapat dijangkau dan model `zydra` siap.
 
 Jika chat gagal, API mengembalikan detail error dari Ollama. Periksa log deploy
-Railway dan pastikan URL upstream dapat diakses serta model bernama `zydra` tersedia.
+Railway untuk memastikan model `zydra` selesai dibuat dan service memiliki resource
+yang cukup untuk menjalankan inferensi.
 
 ## Menjalankan dengan Docker
 
