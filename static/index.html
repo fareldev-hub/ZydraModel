@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zydra API Playground</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
+    body { max-width: 900px; margin: 0 auto; padding: 24px; }
+    h1, h2 { line-height: 1.2; }
+    .card { border: 1px solid #8886; border-radius: 12px; padding: 18px; margin: 16px 0; }
+    label { display: block; font-weight: 600; margin: 12px 0 4px; }
+    input, textarea, button { box-sizing: border-box; font: inherit; }
+    input[type="url"], input[type="password"], textarea { width: 100%; padding: 10px; border: 1px solid #8888; border-radius: 8px; }
+    textarea { min-height: 110px; resize: vertical; }
+    button { border: 0; border-radius: 8px; padding: 9px 14px; cursor: pointer; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    #conversation { min-height: 100px; max-height: 420px; overflow: auto; }
+    .message { white-space: pre-wrap; overflow-wrap: anywhere; padding: 10px 12px; margin: 8px 0; border-radius: 8px; background: #8882; }
+    .message strong { display: block; margin-bottom: 4px; }
+    #status { min-height: 1.5em; }
+    #preview { max-width: 100%; max-height: 240px; display: none; margin-top: 10px; border-radius: 8px; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1>Zydra API Playground</h1>
+  <p>Uji text generation dan vision, serta ubah system instructions melalui API.</p>
+
+  <section class="card" aria-labelledby="connection-heading">
+    <h2 id="connection-heading">Koneksi API</h2>
+    <label for="api-key">API key</label>
+    <input id="api-key" type="password" autocomplete="off" placeholder="Masukkan API_KEY Railway">
+    <p>Key hanya digunakan di browser ini dan tidak disimpan.</p>
+    <div class="actions"><button id="load-instructions">Muat instruksi</button></div>
+  </section>
+
+  <section class="card" aria-labelledby="instructions-heading">
+    <h2 id="instructions-heading">System instructions</h2>
+    <label for="instructions">Instruksi yang digunakan model pada setiap chat</label>
+    <textarea id="instructions" maxlength="20000"></textarea>
+    <div class="actions"><button id="save-instructions">Simpan instruksi</button></div>
+  </section>
+
+  <section class="card" aria-labelledby="chat-heading">
+    <h2 id="chat-heading">Chat dan vision</h2>
+    <div id="conversation" aria-live="polite"></div>
+    <label for="prompt">Pesan</label>
+    <textarea id="prompt" placeholder="Tulis pertanyaan atau minta model menganalisis gambar..."></textarea>
+    <label for="image">Gambar (opsional, maksimal 10 MB)</label>
+    <input id="image" type="file" accept="image/*">
+    <img id="preview" alt="Pratinjau gambar yang akan dikirim">
+    <div class="actions"><button id="send">Kirim</button><button id="clear">Bersihkan chat</button></div>
+  </section>
+  <p id="status" role="status"></p>
+
+  <script>
+    const apiKey = document.querySelector("#api-key");
+    const status = document.querySelector("#status");
+    const instructions = document.querySelector("#instructions");
+    const promptInput = document.querySelector("#prompt");
+    const imageInput = document.querySelector("#image");
+    const preview = document.querySelector("#preview");
+    const conversation = document.querySelector("#conversation");
+    const history = [];
+    let imageData = "";
+
+    async function api(path, options = {}) {
+      const headers = new Headers(options.headers || {});
+      headers.set("Authorization", `Bearer ${apiKey.value.trim()}`);
+      if (options.body) headers.set("Content-Type", "application/json");
+      const response = await fetch(path, { ...options, headers });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+      return data;
+    }
+
+    function showMessage(role, text) {
+      const item = document.createElement("div");
+      item.className = "message";
+      const title = document.createElement("strong");
+      title.textContent = role === "user" ? "Anda" : "Zydra";
+      const content = document.createElement("span");
+      content.textContent = text;
+      item.append(title, content);
+      conversation.append(item);
+      conversation.scrollTop = conversation.scrollHeight;
+    }
+
+    document.querySelector("#load-instructions").addEventListener("click", async () => {
+      try {
+        const data = await api("/v1/instructions");
+        instructions.value = data.instructions;
+        status.textContent = "Instruksi berhasil dimuat.";
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
+
+    document.querySelector("#save-instructions").addEventListener("click", async () => {
+      try {
+        await api("/v1/instructions", {
+          method: "PUT",
+          body: JSON.stringify({ instructions: instructions.value })
+        });
+        status.textContent = "Instruksi berhasil disimpan.";
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
+
+    imageInput.addEventListener("change", () => {
+      const file = imageInput.files[0];
+      if (!file) {
+        imageData = "";
+        preview.style.display = "none";
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        imageInput.value = "";
+        imageData = "";
+        preview.style.display = "none";
+        status.textContent = "Ukuran gambar maksimal 10 MB.";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        imageData = reader.result;
+        preview.src = imageData;
+        preview.style.display = "block";
+      };
+      reader.onerror = () => { status.textContent = "Gagal membaca file gambar."; };
+      reader.readAsDataURL(file);
+    });
+
+    document.querySelector("#send").addEventListener("click", async () => {
+      const text = promptInput.value.trim();
+      if (!text && !imageData) {
+        status.textContent = "Masukkan pesan atau pilih gambar.";
+        return;
+      }
+      const content = [];
+      if (text) content.push({ type: "text", text });
+      if (imageData) content.push({ type: "image_url", image_url: { url: imageData } });
+      const userMessage = { role: "user", content };
+      showMessage("user", text || "Tolong analisis gambar ini.");
+      history.push(userMessage);
+      status.textContent = "Mengirim permintaan...";
+      document.querySelector("#send").disabled = true;
+      try {
+        const data = await api("/v1/chat/completions", {
+          method: "POST",
+          body: JSON.stringify({ model: "zydra", messages: history })
+        });
+        const answer = data.choices?.[0]?.message?.content || "Model tidak mengembalikan teks.";
+        history.push({ role: "assistant", content: answer });
+        showMessage("assistant", answer);
+        promptInput.value = "";
+        imageInput.value = "";
+        imageData = "";
+        preview.style.display = "none";
+        status.textContent = "Selesai.";
+      } catch (error) {
+        history.pop();
+        status.textContent = error.message;
+      } finally {
+        document.querySelector("#send").disabled = false;
+      }
+    });
+
+    document.querySelector("#clear").addEventListener("click", () => {
+      history.length = 0;
+      conversation.replaceChildren();
+      status.textContent = "Riwayat chat dibersihkan.";
+    });
+  </script>
+</body>
+</html>
