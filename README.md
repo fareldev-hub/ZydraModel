@@ -1,27 +1,34 @@
 # ZydraModel
 
-Zydra berjalan menggunakan Ollama dan model multimodal `qwen3-vl:2b`. Container
-menyediakan API chat yang kompatibel dengan format OpenAI, playground web, dan API
-untuk mengubah system instructions.
+Zydra menyediakan API chat yang kompatibel dengan format OpenAI, playground web,
+dan API untuk mengubah system instructions. Container menjalankan API dan Ollama
+lokal bersama-sama. Service Ollama terpisah `https://ollama-run.up.railway.app`
+tetap dapat dipilih dengan mengatur `OLLAMA_URL`.
 
 ## Deploy ke Railway
 
 1. Buat service Railway dari repository ini. Railway akan menggunakan `Dockerfile`
    dan konfigurasi di `railway.toml`.
-2. Tambahkan **Volume** dan mount pada `/data`. Volume ini menyimpan model Ollama
-   dan instruksi agar tetap ada setelah restart/deploy.
+2. Tambahkan **Volume** dan mount pada `/data`. Volume menyimpan model Ollama dan
+   system instructions agar tetap ada setelah restart/deploy.
 3. Tambahkan variable `AUTH` dengan password yang kuat. Password yang sama digunakan
    untuk membuka playground dan autentikasi API. Semua endpoint `/v1/*`
    memerlukan password tersebut melalui header `Authorization` (Bearer) atau `X-API-Key`.
-4. Deploy dan tunggu proses awal selesai. Container mengunduh model dasar pada
-   boot pertama; `/health` tetap merespons selama proses itu, sedangkan
-   `/health` mengembalikan `"model_ready": true` setelah model siap.
-5. Buka URL service Railway untuk mencoba playground.
+4. Hapus `OLLAMA_URL` dari Variables jika sebelumnya disetel ke
+   `https://ollama-run.up.railway.app`; default API adalah `http://localhost:11434`
+   dan container akan menjalankan Ollama sendiri. Jika ingin menggunakan service
+   Ollama terpisah, set `OLLAMA_URL` ke URL service tersebut dan pastikan model
+   `zydra` tersedia di sana.
+5. Deploy. Saat pertama kali berjalan, container mengunduh `qwen3-vl:2b` dan
+   membuat model `zydra`; simpan model pada Railway Volume `/data`.
+6. Buka URL service Railway untuk mencoba playground.
 
-Railway menyediakan `PORT` secara otomatis. API bind ke port tersebut; Ollama
-hanya diakses secara internal oleh API dan tidak perlu diekspos ke publik.
-Selama model sedang diunduh/dimuat, permintaan chat dapat mengembalikan HTTP 503;
-coba lagi setelah `model_ready` bernilai `true`.
+Railway menyediakan `PORT` secara otomatis. API bind ke port tersebut dan
+meneruskan permintaan ke Ollama lokal. `/health` melaporkan apakah Ollama dapat
+dijangkau dan model `zydra` siap.
+
+Jika chat gagal, API mengembalikan detail error dari Ollama. Periksa log deploy
+Railway dan pastikan URL upstream dapat diakses serta model bernama `zydra` tersedia.
 
 ## Menjalankan dengan Docker
 
@@ -56,8 +63,8 @@ Endpoint utama:
 | `GET` | `/ready` | HTTP 200 hanya setelah model `zydra` siap; selain itu HTTP 503. |
 
 Instruksi tersimpan pada `/data/instructions.txt` secara default. Gunakan volume
-Railway di `/data` agar perubahan instruksi dan model yang diunduh bertahan.
-Path bisa diubah melalui variable `INSTRUCTIONS_FILE`.
+Railway di `/data` agar model Ollama dan perubahan instruksi bertahan. Path
+instruksi bisa diubah melalui variable `INSTRUCTIONS_FILE`.
 
 Contoh vision dengan URL gambar:
 

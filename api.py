@@ -177,6 +177,23 @@ def to_ollama_messages(messages: List[Message]) -> List[Dict[str, Any]]:
 def ollama_error(exc: requests.RequestException) -> HTTPException:
     if isinstance(exc, requests.Timeout):
         return HTTPException(status_code=504, detail="Ollama timeout")
+
+    response = getattr(exc, "response", None)
+    if response is not None:
+        try:
+            response_data = response.json()
+        except ValueError:
+            response_data = {}
+        upstream_detail = response_data.get("error") if isinstance(response_data, dict) else None
+        if not upstream_detail:
+            upstream_detail = response.text.strip()
+        if not upstream_detail:
+            upstream_detail = response.reason or "Unknown upstream error"
+        return HTTPException(
+            status_code=502,
+            detail=f"Ollama HTTP {response.status_code}: {str(upstream_detail)[:2000]}",
+        )
+
     return HTTPException(status_code=503, detail=f"Ollama tidak dapat memproses permintaan: {exc}")
 
 
@@ -224,6 +241,16 @@ def stream_completion(payload: Dict[str, Any], model: str, completion_id: str):
                 if not line:
                     continue
                 data = json.loads(line)
+                if data.get("error"):
+                    error = {
+                        "error": {
+                            "message": f"Ollama error: {str(data['error'])[:2000]}",
+                            "type": "upstream_error",
+                        }
+                    }
+                    yield f"data: {json.dumps(error, ensure_ascii=False)}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
                 message = data.get("message", {})
                 content = message.get("content", "")
                 if content:
@@ -241,8 +268,19 @@ def stream_completion(payload: Dict[str, Any], model: str, completion_id: str):
                     yield completion_chunk(completion_id, model, {}, "tool_calls" if tool_calls else "stop")
                     yield "data: [DONE]\n\n"
                     return
-    except (requests.RequestException, ValueError) as exc:
-        error = {"error": {"message": str(exc), "type": "upstream_error"}}
+    except requests.RequestException as exc:
+        upstream_error = ollama_error(exc)
+        error = {
+            "error": {
+                "message": upstream_error.detail,
+                "type": "upstream_error",
+                "code": upstream_error.status_code,
+            }
+        }
+        yield f"data: {json.dumps(error, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+    except ValueError as exc:
+        error = {"error": {"message": f"Respons Ollama tidak valid: {exc}", "type": "upstream_error"}}
         yield f"data: {json.dumps(error, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
@@ -288,6 +326,9 @@ def chat(
         raise ollama_error(exc)
     except ValueError as exc:
         raise HTTPException(status_code=502, detail=f"Respons Ollama tidak valid: {exc}")
+
+    if result.get("error"):
+        raise HTTPException(status_code=502, detail=f"Ollama error: {str(result['error'])[:2000]}")
 
     message = result.get("message", {})
     response_message: Dict[str, Any] = {
