@@ -11,8 +11,9 @@ dalam satu container/service Railway.
 2. Tambahkan **Volume** dan mount pada `/data`. Volume menyimpan model Ollama,
    system instructions, dan password otomatis agar tetap ada setelah restart/deploy.
 3. Variable non-rahasia seperti `OLLAMA_URL`, `INSTRUCTIONS_FILE`, dan
-   `MODEL_STATUS_FILE` sudah memiliki default di image. Pastikan `OLLAMA_URL`
-   tidak dioverride ke service lain.
+   `MODEL_STATUS_FILE` sudah memiliki default di image. Untuk Ollama yang berjalan
+   bersama API dalam container ini, hapus variable `OLLAMA_URL` dari Railway atau
+   tetapkan ke `http://localhost:11434`; jangan isi dengan domain publik service.
 4. `AUTH` dibuat secara acak saat boot pertama jika variable `AUTH` tidak disetel.
    Password ditampilkan **satu kali** di log deploy saat dibuat. Simpan password
    itu untuk UI dan API; proses berikutnya membaca password dari volume `/data`.

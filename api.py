@@ -18,7 +18,29 @@ from pydantic import BaseModel, Field
 
 app = FastAPI(title="Zydra API", version="1.0.0")
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
+DEFAULT_OLLAMA_URL = "http://localhost:11434"
+
+
+def resolve_ollama_url(configured_url: str, railway_public_domain: str = "") -> str:
+    configured_url = configured_url.strip().rstrip("/")
+    if not configured_url:
+        return DEFAULT_OLLAMA_URL
+
+    if "://" not in configured_url:
+        configured_url = f"http://{configured_url}"
+
+    configured_host = urlparse(configured_url).hostname
+    public_domain = railway_public_domain.strip().lower()
+    public_host = urlparse(public_domain if "://" in public_domain else f"//{public_domain}").hostname
+    if configured_host and public_host and configured_host.lower() == public_host.lower():
+        return DEFAULT_OLLAMA_URL
+    return configured_url
+
+
+OLLAMA_URL = resolve_ollama_url(
+    os.getenv("OLLAMA_URL", DEFAULT_OLLAMA_URL),
+    os.getenv("RAILWAY_PUBLIC_DOMAIN", ""),
+)
 AUTH_FILE = Path(os.getenv("AUTH_FILE", "/data/auth"))
 INSTRUCTIONS_FILE = Path(os.getenv("INSTRUCTIONS_FILE", "/data/instructions.txt"))
 MODEL_STATUS_FILE = Path(os.getenv("MODEL_STATUS_FILE", "/tmp/zydra-setup-status.json"))
