@@ -27,12 +27,6 @@
   </a>
 </p>
 
-Project ini membuat model AI `zydra` berbasis Google Gemma 3 1B, model
-multibahasa yang mendukung lebih dari 140 bahasa. Ollama mengunduh base model
-(sekitar 806 MB), lalu membuat `zydra` dengan konfigurasi project. Model tersebut
-kemudian disediakan melalui API percakapan dan dokumentasi interaktif di dalam
-container Docker.
-
 ## Statistik dan kontribusi
 
 <p>
