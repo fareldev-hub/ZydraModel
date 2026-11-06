@@ -218,14 +218,20 @@ Notice base model tersedia di `MODEL_LICENSES/`.
 <div align="center">
   <h2>Tentang Pembuat</h2>
   <a href="https://github.com/fareldev-hub">
-    <img src="https://github.com/fareldev-hub.png?size=160" width="112" alt="Avatar Farel Alfareza">
+    <img style="border-radius:10px;" src="https://github.com/fareldev-hub.png?size=160" width="112" alt="Avatar Farel Alfareza">
   </a>
   <h3>Farel Alfareza</h3>
-  <p>Pembuat dan pemelihara <strong>Zydra</strong>.<br>
-  <a href="https://github.com/fareldev-hub">@fareldev-hub di GitHub</a></p>
+  <p>Pembuat dan pemelihara <strong>Zydra</strong>.</p>
+  <a href="https://github.com/fareldev-hub">
+    <img src="https://img.shields.io/badge/GitHub-fareldev--hub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub @fareldev-hub">
+  </a>
+  &nbsp;
+  <a href="https://tiktok.com/@logic_vibes">
+    <img src="https://img.shields.io/badge/TikTok-%40logic__vibes-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok @logic_vibes">
+  </a>
   <p>Jika project ini bermanfaat, dukung pengembangannya melalui:</p>
   <a href="https://trakteer.id/farel_alfarez">
-    <img src="https://img.shields.io/badge/ThePort%20(%40farel__alfarez)-Trakteer-BE1E2D?style=for-the-badge" alt="ThePort (@farel_alfarez) • Trakteer">
+    <img src="https://img.shields.io/badge/Via-Trakteer-BE1E2D?style=for-the-badge" alt="ThePort (@farel_alfarez) • Trakteer">
   </a>
   &nbsp;
   <a href="https://saweria.co/fareldev">
