@@ -1,14 +1,12 @@
-import base64
-import binascii
-import ipaddress
+import hashlib
 import json
 import os
 import secrets
-import socket
+import threading
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional
 
 import requests
 from fastapi import FastAPI, Header, HTTPException
@@ -18,38 +16,48 @@ from pydantic import BaseModel, Field
 
 app = FastAPI(title="Zydra API", version="1.0.0")
 
-DEFAULT_OLLAMA_URL = "http://localhost:11434"
-
-
-def resolve_ollama_url(configured_url: str, railway_public_domain: str = "") -> str:
-    configured_url = configured_url.strip().rstrip("/")
-    if not configured_url:
-        return DEFAULT_OLLAMA_URL
-
-    if "://" not in configured_url:
-        configured_url = f"http://{configured_url}"
-
-    configured_host = urlparse(configured_url).hostname
-    public_domain = railway_public_domain.strip().lower()
-    public_host = urlparse(public_domain if "://" in public_domain else f"//{public_domain}").hostname
-    if configured_host and public_host and configured_host.lower() == public_host.lower():
-        return DEFAULT_OLLAMA_URL
-    return configured_url
-
-
-OLLAMA_URL = resolve_ollama_url(
-    os.getenv("OLLAMA_URL", DEFAULT_OLLAMA_URL),
-    os.getenv("RAILWAY_PUBLIC_DOMAIN", ""),
-)
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 AUTH_FILE = Path(os.getenv("AUTH_FILE", "/data/auth"))
 INSTRUCTIONS_FILE = Path(os.getenv("INSTRUCTIONS_FILE", "/data/instructions.txt"))
 MODEL_STATUS_FILE = Path(os.getenv("MODEL_STATUS_FILE", "/tmp/zydra-setup-status.json"))
-MAX_IMAGE_BYTES = 10 * 1024 * 1024
+API_KEYS_FILE = Path(os.getenv("API_KEYS_FILE", str(Path(__file__).parent / "database" / "api.json")))
+API_KEYS_LOCK = threading.RLock()
+CREATOR = "farel alfareza"
 DEFAULT_INSTRUCTIONS = (
-    "Anda adalah Zydra, asisten AI multimodal yang dikembangkan oleh Fareldev. "
+    "Anda adalah Zydra, asisten AI teks yang dikembangkan oleh Fareldev. "
     "Jawab dengan jelas, jujur, dan sopan. Gunakan Bahasa Indonesia jika pengguna "
     "menggunakan Bahasa Indonesia. Tolak permintaan yang berbahaya atau ilegal."
 )
+
+
+@app.middleware("http")
+async def add_creator_to_json_responses(request, call_next):
+    response = await call_next(request)
+    content_type = response.headers.get("content-type", "")
+    if "application/json" not in content_type or response.status_code == 204:
+        return response
+
+    body = b"".join([chunk async for chunk in response.body_iterator])
+    try:
+        payload = json.loads(body)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return response
+
+    if isinstance(payload, dict):
+        payload["creator"] = CREATOR
+    else:
+        payload = {"data": payload, "creator": CREATOR}
+    headers = {
+        name: value
+        for name, value in response.headers.items()
+        if name.lower() not in {"content-length", "content-type"}
+    }
+    return JSONResponse(
+        content=payload,
+        status_code=response.status_code,
+        headers=headers,
+        background=response.background,
+    )
 
 
 def load_or_create_auth() -> str:
@@ -83,15 +91,9 @@ def load_or_create_auth() -> str:
 AUTH = load_or_create_auth()
 
 
-class ContentPart(BaseModel):
-    type: str
-    text: Optional[str] = None
-    image_url: Optional[Dict[str, str]] = None
-
-
 class Message(BaseModel):
     role: str
-    content: Union[str, List[ContentPart]]
+    content: str
 
 
 class ChatRequest(BaseModel):
@@ -108,19 +110,72 @@ class InstructionUpdate(BaseModel):
     instructions: str = Field(..., min_length=1, max_length=20000)
 
 
+class APIKeyCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=80)
+
+
+def supplied_api_key(authorization: Optional[str], x_api_key: Optional[str]) -> str:
+    if x_api_key:
+        return x_api_key
+    if authorization:
+        scheme, _, credentials = authorization.partition(" ")
+        if scheme.lower() == "bearer":
+            return credentials
+    return ""
+
+
+def read_api_key_records() -> List[Dict[str, Any]]:
+    try:
+        data = json.loads(API_KEYS_FILE.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return []
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail=f"Gagal membaca database API key: {exc}")
+    if not isinstance(data, dict) or not isinstance(data.get("keys"), list):
+        raise HTTPException(status_code=500, detail="Format database API key tidak valid")
+    return data["keys"]
+
+
+def write_api_key_records(records: List[Dict[str, Any]]) -> None:
+    temporary_file = API_KEYS_FILE.with_name(f"{API_KEYS_FILE.name}.{uuid.uuid4().hex}.tmp")
+    try:
+        API_KEYS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        temporary_file.write_text(
+            json.dumps({"keys": records}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        os.chmod(temporary_file, 0o600)
+        os.replace(temporary_file, API_KEYS_FILE)
+    except OSError as exc:
+        temporary_file.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Gagal menyimpan database API key: {exc}")
+
+
+def require_admin_api_key(authorization: Optional[str], x_api_key: Optional[str]) -> None:
+    if not AUTH:
+        raise HTTPException(status_code=503, detail="AUTH belum dikonfigurasi")
+    if not secrets.compare_digest(supplied_api_key(authorization, x_api_key), AUTH):
+        raise HTTPException(status_code=401, detail="Endpoint pengelolaan API key memerlukan AUTH master")
+
+
 def require_api_key(authorization: Optional[str], x_api_key: Optional[str]) -> None:
     if not AUTH:
         raise HTTPException(status_code=503, detail="AUTH belum dikonfigurasi")
 
-    bearer_key = ""
-    if authorization:
-        scheme, _, credentials = authorization.partition(" ")
-        if scheme.lower() == "bearer":
-            bearer_key = credentials
-
-    supplied_key = x_api_key or bearer_key
-    if not secrets.compare_digest(supplied_key, AUTH):
+    supplied_key = supplied_api_key(authorization, x_api_key)
+    if secrets.compare_digest(supplied_key, AUTH):
+        return
+    if not supplied_key:
         raise HTTPException(status_code=401, detail="API key tidak valid")
+
+    supplied_hash = hashlib.sha256(supplied_key.encode("utf-8")).hexdigest()
+    with API_KEYS_LOCK:
+        records = read_api_key_records()
+    for record in records:
+        stored_hash = record.get("key_hash") if isinstance(record, dict) else None
+        if isinstance(stored_hash, str) and secrets.compare_digest(stored_hash, supplied_hash):
+            return
+    raise HTTPException(status_code=401, detail="API key tidak valid")
 
 
 def read_instructions() -> str:
@@ -132,99 +187,12 @@ def read_instructions() -> str:
         raise HTTPException(status_code=500, detail=f"Gagal membaca instruksi: {exc}")
 
 
-def fetch_image_as_base64(url: str) -> str:
-    parsed_url = urlparse(url)
-    if parsed_url.scheme not in ("http", "https") or not parsed_url.netloc:
-        raise HTTPException(status_code=400, detail="URL gambar harus menggunakan HTTP atau HTTPS")
-    if parsed_url.username or parsed_url.password:
-        raise HTTPException(status_code=400, detail="URL gambar tidak boleh berisi kredensial")
-    try:
-        port = parsed_url.port
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=f"Port URL gambar tidak valid: {exc}")
-    hostname = parsed_url.hostname
-    if not hostname:
-        raise HTTPException(status_code=400, detail="URL gambar harus memiliki hostname")
-    if port and port != (443 if parsed_url.scheme == "https" else 80):
-        raise HTTPException(status_code=400, detail="Port URL gambar tidak didukung")
-
-    try:
-        addresses = {
-            ipaddress.ip_address(address[4][0])
-            for address in socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)
-        }
-    except (socket.gaierror, ValueError) as exc:
-        raise HTTPException(status_code=400, detail=f"Host URL gambar tidak valid: {exc}")
-    if not addresses or any(not address.is_global for address in addresses):
-        raise HTTPException(status_code=400, detail="URL gambar harus mengarah ke host publik")
-
-    try:
-        with requests.get(url, timeout=20, stream=True, allow_redirects=False) as response:
-            if response.is_redirect:
-                raise HTTPException(status_code=400, detail="Redirect URL gambar tidak didukung")
-            response.raise_for_status()
-            content_type = response.headers.get("Content-Type", "").split(";", 1)[0].lower()
-            if not content_type.startswith("image/"):
-                raise HTTPException(status_code=400, detail="URL tidak mengarah ke file gambar")
-
-            image_data = bytearray()
-            for chunk in response.iter_content(chunk_size=64 * 1024):
-                image_data.extend(chunk)
-                if len(image_data) > MAX_IMAGE_BYTES:
-                    raise HTTPException(status_code=413, detail="Ukuran gambar maksimal 10 MB")
-            if not image_data:
-                raise HTTPException(status_code=400, detail="File gambar kosong")
-            return base64.b64encode(image_data).decode("ascii")
-    except requests.RequestException as exc:
-        raise HTTPException(status_code=400, detail=f"Gagal mengambil gambar: {exc}")
-
-
-def image_part_to_base64(url: str) -> str:
-    if url.startswith("data:"):
-        try:
-            header, encoded_data = url.split(",", 1)
-            if not header.startswith("data:image/") or ";base64" not in header:
-                raise ValueError("Format data URL gambar tidak didukung")
-            image_data = base64.b64decode(encoded_data, validate=True)
-        except (ValueError, binascii.Error) as exc:
-            raise HTTPException(status_code=400, detail=f"Data gambar tidak valid: {exc}")
-        if len(image_data) > MAX_IMAGE_BYTES:
-            raise HTTPException(status_code=413, detail="Ukuran gambar maksimal 10 MB")
-        if not image_data:
-            raise HTTPException(status_code=400, detail="File gambar kosong")
-        return base64.b64encode(image_data).decode("ascii")
-    return fetch_image_as_base64(url)
-
-
 def to_ollama_messages(messages: List[Message]) -> List[Dict[str, Any]]:
     ollama_messages: List[Dict[str, Any]] = [
         {"role": "system", "content": read_instructions()}
     ]
     for message in messages:
-        if isinstance(message.content, str):
-            ollama_messages.append({"role": message.role, "content": message.content})
-            continue
-
-        text_content = []
-        images = []
-        for part in message.content:
-            if part.type == "text" and part.text:
-                text_content.append(part.text)
-            elif part.type == "image_url" and part.image_url:
-                image_url = part.image_url.get("url", "")
-                if not image_url:
-                    raise HTTPException(status_code=400, detail="image_url harus memiliki url")
-                images.append(image_part_to_base64(image_url))
-            else:
-                raise HTTPException(status_code=400, detail=f"Content type tidak didukung: {part.type}")
-
-        ollama_message: Dict[str, Any] = {
-            "role": message.role,
-            "content": "\n".join(text_content),
-        }
-        if images:
-            ollama_message["images"] = images
-        ollama_messages.append(ollama_message)
+        ollama_messages.append({"role": message.role, "content": message.content})
     return ollama_messages
 
 
@@ -261,6 +229,7 @@ def completion_chunk(
         "id": completion_id,
         "object": "chat.completion.chunk",
         "model": model,
+        "creator": CREATOR,
         "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}],
     }
     return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
@@ -320,7 +289,7 @@ def read_model_status(model_names: Optional[List[str]] = None) -> Dict[str, Any]
     except FileNotFoundError:
         setup_status = {
             "stage": "starting",
-            "message": "Status setup belum tersedia. Periksa log deploy Railway.",
+            "message": "Status setup belum tersedia. Periksa log container.",
         }
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=500, detail=f"Gagal membaca status setup model: {exc}")
@@ -368,6 +337,7 @@ def stream_completion(payload: Dict[str, Any], model: str, completion_id: str):
                 data = json.loads(line)
                 if data.get("error"):
                     error = {
+                        "creator": CREATOR,
                         "error": {
                             "message": f"Ollama error: {str(data['error'])[:2000]}",
                             "type": "upstream_error",
@@ -396,6 +366,7 @@ def stream_completion(payload: Dict[str, Any], model: str, completion_id: str):
     except requests.RequestException as exc:
         upstream_error = ollama_error(exc)
         error = {
+            "creator": CREATOR,
             "error": {
                 "message": upstream_error.detail,
                 "type": "upstream_error",
@@ -405,7 +376,10 @@ def stream_completion(payload: Dict[str, Any], model: str, completion_id: str):
         yield f"data: {json.dumps(error, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
     except ValueError as exc:
-        error = {"error": {"message": f"Respons Ollama tidak valid: {exc}", "type": "upstream_error"}}
+        error = {
+            "creator": CREATOR,
+            "error": {"message": f"Respons Ollama tidak valid: {exc}", "type": "upstream_error"},
+        }
         yield f"data: {json.dumps(error, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
@@ -518,6 +492,72 @@ def update_instructions(
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"Gagal menyimpan instruksi: {exc}")
     return {"instructions": update.instructions}
+
+
+@app.get("/v1/api-keys")
+def list_api_keys(
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None),
+):
+    require_admin_api_key(authorization, x_api_key)
+    with API_KEYS_LOCK:
+        records = read_api_key_records()
+    return {
+        "data": [
+            {
+                "id": record["id"],
+                "name": record["name"],
+                "prefix": record["prefix"],
+                "created_at": record["created_at"],
+            }
+            for record in records
+            if isinstance(record, dict)
+        ]
+    }
+
+
+@app.post("/v1/api-keys")
+def create_api_key(
+    request: APIKeyCreate,
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None),
+):
+    require_admin_api_key(authorization, x_api_key)
+    api_key = f"zdy-{secrets.token_urlsafe(32)}"
+    record = {
+        "id": uuid.uuid4().hex,
+        "name": request.name.strip(),
+        "prefix": f"{api_key[:12]}...",
+        "key_hash": hashlib.sha256(api_key.encode("utf-8")).hexdigest(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if not record["name"]:
+        raise HTTPException(status_code=422, detail="Nama API key tidak boleh kosong")
+    with API_KEYS_LOCK:
+        records = read_api_key_records()
+        records.append(record)
+        write_api_key_records(records)
+    return {
+        "api_key": api_key,
+        "key": {key: record[key] for key in ("id", "name", "prefix", "created_at")},
+        "message": "Simpan API key sekarang; nilainya tidak ditampilkan lagi.",
+    }
+
+
+@app.delete("/v1/api-keys/{key_id}")
+def delete_api_key(
+    key_id: str,
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None),
+):
+    require_admin_api_key(authorization, x_api_key)
+    with API_KEYS_LOCK:
+        records = read_api_key_records()
+        remaining_records = [record for record in records if record.get("id") != key_id]
+        if len(remaining_records) == len(records):
+            raise HTTPException(status_code=404, detail="API key tidak ditemukan")
+        write_api_key_records(remaining_records)
+    return {"deleted": True, "id": key_id}
 
 
 @app.get("/health")

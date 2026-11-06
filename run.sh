@@ -18,7 +18,7 @@ write_status() {
 
 handle_setup_error() {
     local exit_code=$?
-    write_status "failed" "Setup model gagal (exit code ${exit_code}); periksa log deploy Railway."
+    write_status "failed" "Setup model gagal (exit code ${exit_code}); periksa log container."
     exit "$exit_code"
 }
 trap handle_setup_error ERR
@@ -30,15 +30,15 @@ until curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; do
 done
 echo "Ollama siap"
 
-if ! ollama show qwen3-vl:2b >/dev/null 2>&1; then
-    write_status "downloading_base_model" "Mengunduh model dasar qwen3-vl:2b."
-    echo "Pull qwen3-vl:2b..."
-    ollama pull qwen3-vl:2b
+if ! ollama show qwen2.5:3b >/dev/null 2>&1; then
+    write_status "downloading_base_model" "Mengunduh model dasar qwen2.5:3b."
+    echo "Pull qwen2.5:3b..."
+    ollama pull qwen2.5:3b
 else
-    echo "qwen3-vl:2b sudah ada"
+    echo "qwen2.5:3b sudah ada"
 fi
 
-write_status "creating_zydra_model" "Membuat model Zydra dari qwen3-vl:2b."
+write_status "creating_zydra_model" "Membuat model Zydra dari qwen2.5:3b."
 echo "Membuat atau memperbarui model Zydra..."
 ollama create zydra -f /root/Modelfile
 

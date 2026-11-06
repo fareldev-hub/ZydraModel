@@ -15,6 +15,7 @@ ENV OLLAMA_MODELS="/data/ollama"
 ENV OLLAMA_URL="http://localhost:11434"
 ENV INSTRUCTIONS_FILE="/data/instructions.txt"
 ENV MODEL_STATUS_FILE="/data/zydra-setup-status.json"
+ENV API_KEYS_FILE="/data/database/api.json"
 ENV AUTH_FILE="/data/auth"
 ENV PYTHONUNBUFFERED=1
 
