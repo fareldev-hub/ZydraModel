@@ -226,8 +226,8 @@ Notice base model tersedia di `MODEL_LICENSES/`.
     <img src="https://img.shields.io/badge/GitHub-fareldev--hub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub @fareldev-hub">
   </a>
   &nbsp;
-  <a href="https://tiktok.com/@logic_vibes">
-    <img src="https://img.shields.io/badge/TikTok-%40logic__vibes-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok @logic_vibes">
+  <a href="https://tiktok.com/@logic__vibes">
+    <img src="https://img.shields.io/badge/TikTok-%40logic__vibes-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok @logic__vibes">
   </a>
   <p>Jika project ini bermanfaat, dukung pengembangannya melalui:</p>
   <a href="https://trakteer.id/farel_alfarez">
