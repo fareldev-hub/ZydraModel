@@ -7,8 +7,8 @@
   <a href="https://www.docker.com/">
     <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   </a>
-  <a href="https://ollama.com/library/phi">
-    <img src="https://img.shields.io/badge/Model-Phi--2-412991?style=for-the-badge" alt="Microsoft Phi-2">
+  <a href="https://ollama.com/library/gemma3:1b">
+    <img src="https://img.shields.io/badge/Base-Gemma%203%201B-4285F4?style=for-the-badge" alt="Google Gemma 3 1B">
   </a>
 </p>
 
@@ -19,17 +19,19 @@
   <a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
     <img src="https://img.shields.io/github/contributors/fareldev-hub/ZydraModel?style=flat-square" alt="Contributors">
   </a>
-  <a href="https://img.shields.io/badge/model%20size-~1.6%20GB-blue?style=flat-square">
-    <img src="https://img.shields.io/badge/model%20size-~1.6%20GB-blue?style=flat-square" alt="Ukuran model sekitar 1,6 GB">
+  <a href="https://img.shields.io/badge/model%20size-~806%20MB-blue?style=flat-square">
+    <img src="https://img.shields.io/badge/model%20size-~806%20MB-blue?style=flat-square" alt="Ukuran model sekitar 806 MB">
   </a>
   <a href="https://github.com/fareldev-hub/ZydraModel/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/code%20license-MIT-green?style=flat-square" alt="Lisensi kode MIT">
   </a>
 </p>
 
-Zydra adalah API chat teks yang menjalankan Ollama dan model `phi` dalam
-satu container Docker. Setup pertama kali mengunduh model, membuat model `zydra`,
-lalu menjalankan API dan dokumentasi interaktif.
+Project ini membuat model AI `zydra` berbasis Google Gemma 3 1B, model
+multibahasa yang mendukung lebih dari 140 bahasa. Ollama mengunduh base model
+(sekitar 806 MB), lalu membuat `zydra` dengan konfigurasi project. Model tersebut
+kemudian disediakan melalui API percakapan dan dokumentasi interaktif di dalam
+container Docker.
 
 ## Statistik dan kontribusi
 
@@ -100,7 +102,7 @@ docker logs -f zydra
 ```
 
 Setup selesai saat log menampilkan `Setup selesai`. Proses ini mengunduh
-`phi` lalu membuat model `zydra`. Unduhan model sekitar 1,6 GB; sediakan
+`gemma3:1b` lalu membuat model `zydra`. Unduhan model sekitar 806 MB; sediakan
 ruang disk tambahan untuk Ollama dan data aplikasi. Hentikan tampilan log dengan
 `Ctrl+C`; container tetap berjalan.
 
@@ -189,10 +191,12 @@ Semua respons JSON API menyertakan properti `creator` bernilai
 
 ## Lisensi
 
-Base model Microsoft Phi-2 (`phi`) memakai MIT, bukan Apache 2.0; ukuran unduh
-varian Ollama yang digunakan sekitar 1,6 GB. Salinan lisensi model dan notice
-tersedia di `MODEL_LICENSES/` dan disertakan dalam Docker image di
-`/root/MODEL_LICENSES`. Lisensi model berlaku terpisah dari kode proyek.
+Base model Google Gemma 3 1B (`gemma3:1b`) memakai Gemma Terms of Use, bukan
+Apache 2.0; ukuran unduh varian Ollama yang digunakan sekitar 806 MB.
+Penggunaan model harus mematuhi [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
+dan [Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy).
+Notice model tersedia di `MODEL_LICENSES/` dan disertakan dalam Docker image di
+`/root/MODEL_LICENSES`. Lisensi model berlaku terpisah dari lisensi MIT kode proyek.
 
 ## Perintah Docker
 

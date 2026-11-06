@@ -30,15 +30,15 @@ until curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; do
 done
 echo "Ollama siap"
 
-if ! ollama show phi >/dev/null 2>&1; then
-    write_status "downloading_base_model" "Mengunduh model dasar phi."
-    echo "Pull phi..."
-    ollama pull phi
+if ! ollama show gemma3:1b >/dev/null 2>&1; then
+    write_status "downloading_base_model" "Mengunduh model dasar gemma3:1b."
+    echo "Pull gemma3:1b..."
+    ollama pull gemma3:1b
 else
-    echo "phi sudah ada"
+    echo "gemma3:1b sudah ada"
 fi
 
-write_status "creating_zydra_model" "Membuat model Zydra dari phi."
+write_status "creating_zydra_model" "Membuat model Zydra dari gemma3:1b."
 echo "Membuat atau memperbarui model Zydra..."
 ollama create zydra -f /root/Modelfile
 

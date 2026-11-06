@@ -12,7 +12,11 @@ import requests
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from langdetect import DetectorFactory, detect_langs
+from langdetect.lang_detect_exception import LangDetectException
 from pydantic import BaseModel, Field
+
+DetectorFactory.seed = 0
 
 app = FastAPI(title="Zydra API", version="1.0.0", docs_url=None, redoc_url=None)
 
@@ -25,9 +29,67 @@ API_KEYS_LOCK = threading.RLock()
 CREATOR = "farel alfareza"
 DEFAULT_INSTRUCTIONS = (
     "Anda adalah Zydra, asisten AI teks yang dikembangkan oleh Fareldev. "
-    "Jawab dengan jelas, jujur, dan sopan. Gunakan Bahasa Indonesia jika pengguna "
-    "menggunakan Bahasa Indonesia. Tolak permintaan yang berbahaya atau ilegal."
+    "Jawab dengan jelas, jujur, dan sopan. Tolak permintaan yang berbahaya atau ilegal."
 )
+LANGUAGE_NAMES = {
+    "af": "Afrikaans",
+    "ar": "Arabic",
+    "bn": "Bengali",
+    "bg": "Bulgarian",
+    "ca": "Catalan",
+    "cs": "Czech",
+    "cy": "Welsh",
+    "da": "Danish",
+    "de": "German",
+    "et": "Estonian",
+    "el": "Greek",
+    "en": "English",
+    "es": "Spanish",
+    "fa": "Persian",
+    "fi": "Finnish",
+    "fr": "French",
+    "gu": "Gujarati",
+    "he": "Hebrew",
+    "hi": "Hindi",
+    "hr": "Croatian",
+    "hu": "Hungarian",
+    "id": "Indonesian",
+    "it": "Italian",
+    "ja": "Japanese",
+    "jv": "Javanese",
+    "ko": "Korean",
+    "kn": "Kannada",
+    "lt": "Lithuanian",
+    "lv": "Latvian",
+    "mk": "Macedonian",
+    "ml": "Malayalam",
+    "ms": "Malay",
+    "mr": "Marathi",
+    "ne": "Nepali",
+    "nl": "Dutch",
+    "no": "Norwegian",
+    "pa": "Punjabi",
+    "pl": "Polish",
+    "pt": "Portuguese",
+    "ro": "Romanian",
+    "ru": "Russian",
+    "sk": "Slovak",
+    "sl": "Slovenian",
+    "so": "Somali",
+    "sq": "Albanian",
+    "sv": "Swedish",
+    "sw": "Swahili",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "th": "Thai",
+    "tl": "Tagalog",
+    "tr": "Turkish",
+    "uk": "Ukrainian",
+    "ur": "Urdu",
+    "vi": "Vietnamese",
+    "zh-cn": "Simplified Chinese",
+    "zh-tw": "Traditional Chinese",
+}
 
 
 @app.middleware("http")
@@ -194,9 +256,45 @@ def read_instructions() -> str:
         raise HTTPException(status_code=500, detail=f"Gagal membaca instruksi: {exc}")
 
 
+def response_language_instruction(messages: List[Message]) -> str:
+    latest_user_message = next(
+        (message.content.strip() for message in reversed(messages) if message.role == "user"),
+        "",
+    )
+    fallback = (
+        "RESPONSE LANGUAGE: Reply in the same natural language as the user's latest message. "
+        "If the user changes language, switch to that language. Do not default to Indonesian "
+        "or translate the user's request unless asked."
+    )
+    if not latest_user_message:
+        return fallback
+
+    try:
+        detections = detect_langs(latest_user_message)
+    except LangDetectException:
+        return fallback
+
+    if not detections or detections[0].prob < 0.65:
+        return fallback
+
+    detected_language = detections[0].lang
+    language_name = LANGUAGE_NAMES.get(detected_language)
+    if not language_name:
+        return fallback
+    return (
+        f"RESPONSE LANGUAGE: The user's latest message is in {language_name}. "
+        f"Write the entire answer in {language_name}. If the user changes language, "
+        "switch to that language. Do not answer in Indonesian unless the user uses it "
+        "or asks for it."
+    )
+
+
 def to_ollama_messages(messages: List[Message]) -> List[Dict[str, Any]]:
     ollama_messages: List[Dict[str, Any]] = [
-        {"role": "system", "content": read_instructions()}
+        {
+            "role": "system",
+            "content": f"{read_instructions()}\n\n{response_language_instruction(messages)}",
+        }
     ]
     for message in messages:
         ollama_messages.append({"role": message.role, "content": message.content})
@@ -281,8 +379,8 @@ def model_owner(model_name: str) -> str:
     model_family = model_name.split(":", 1)[0].lower()
     if model_family == "zydra":
         return CREATOR
-    if model_family == "phi":
-        return "Microsoft"
+    if model_family == "gemma3":
+        return "Google"
     return "Ollama"
 
 
