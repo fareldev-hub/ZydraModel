@@ -2,7 +2,7 @@
 
 Zydra adalah API chat teks yang menjalankan Ollama dan model `qwen2.5:3b` dalam
 satu container Docker. Setup pertama kali mengunduh model, membuat model `zydra`,
-lalu menjalankan API dan playground.
+lalu menjalankan API dan dokumentasi interaktif.
 
 ## Persiapan
 
@@ -65,9 +65,46 @@ curl http://localhost:8000/health
 ```
 
 Lanjutkan setelah respons berisi `"model_ready":true`. Buka
-<http://localhost:8000> dan masuk menggunakan password `AUTH` dari `.env`.
+<http://localhost:8000/docs> untuk menguji GET/POST dan mengelola API key dengan
+password master `AUTH` dari `.env`.
+
+![Daftar route API Zydra](docs/api.png)
 
 ## Uji balasan teks
+
+Gunakan route sederhana `POST /v1/prompt` untuk mengirim satu prompt dan menerima
+field `response` langsung:
+
+```sh
+set -a
+. ./.env
+set +a
+
+curl http://localhost:8000/v1/prompt \
+  -H "Authorization: Bearer $AUTH" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Jelaskan fotosintesis secara singkat."}'
+```
+
+Alias route ringkas juga tersedia dalam dua method:
+
+```sh
+# GET sesuai format query yang diminta
+curl --get "http://localhost:8000/api/chat" \
+  --data-urlencode "api=$API_KEY" \
+  --data-urlencode "prompt=Jelaskan fotosintesis singkat."
+
+# POST; gunakan ini untuk key sensitif karena key dikirim di header
+curl "http://localhost:8000/api/chat" \
+  -X POST \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Jelaskan fotosintesis singkat."}'
+```
+
+GET menerima `api` dan `prompt` sebagai query parameter, tetapi URL dapat masuk
+ke history browser, proxy, dan access log. POST melalui header lebih disarankan.
+Keduanya mengembalikan JSON berisi `model`, `response`, dan `creator`.
 
 API chat kompatibel dengan format OpenAI. Uji dari terminal:
 
@@ -75,7 +112,6 @@ API chat kompatibel dengan format OpenAI. Uji dari terminal:
 set -a
 . ./.env
 set +a
-
 curl http://localhost:8000/v1/chat/completions \
   -H "Authorization: Bearer $AUTH" \
   -H "Content-Type: application/json" \
@@ -88,8 +124,8 @@ header Bearer atau `X-API-Key`.
 
 ## Mengelola API keys
 
-Masuk ke playground dengan password master `AUTH`, lalu buka tab **Integrasi
-API**. Isi nama key dan pilih **Tambah API key**. Key baru berformat `zdy-...`;
+Buka <http://localhost:8000/docs> dan masuk dengan password master `AUTH`. Isi
+nama key dan pilih **Buat API key**. Key baru berformat `zdy-...`;
 salin saat pertama kali muncul karena nilai penuh tidak ditampilkan lagi.
 
 Key terkelola dapat digunakan untuk endpoint API selain route pengelolaan key.
@@ -118,7 +154,9 @@ Menghapus container tidak menghapus model selama volume `zydra-data` tetap ada.
 Untuk menghapus seluruh data model secara permanen, hapus volume tersebut dengan
 `docker volume rm zydra-data`.
 
-Dokumentasi API tersedia di <http://localhost:8000/docs>.
+Dokumentasi route dan contoh integrasi, generator API key, serta uji prompt
+tersedia di <http://localhost:8000/docs>. Root service `/` juga mengarah langsung
+ke halaman dokumentasi tersebut.
 
 ## Lisensi
 

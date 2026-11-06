@@ -9,12 +9,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Zydra API", version="1.0.0")
+app = FastAPI(title="Zydra API", version="1.0.0", docs_url=None, redoc_url=None)
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 AUTH_FILE = Path(os.getenv("AUTH_FILE", "/data/auth"))
@@ -103,6 +103,13 @@ class ChatRequest(BaseModel):
     tools: Optional[List[Dict[str, Any]]] = None
     temperature: Optional[float] = Field(None, ge=0, le=2)
     top_p: Optional[float] = Field(None, gt=0, le=1)
+    max_tokens: Optional[int] = Field(None, gt=0)
+
+
+class PromptRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=32000)
+    model: str = "zydra"
+    temperature: Optional[float] = Field(None, ge=0, le=2)
     max_tokens: Optional[int] = Field(None, gt=0)
 
 
@@ -475,6 +482,60 @@ def models(
     }
 
 
+@app.post("/v1/prompt")
+def prompt(
+    request: PromptRequest,
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None),
+):
+    return generate_prompt_response(request, authorization, x_api_key)
+
+
+def generate_prompt_response(
+    request: PromptRequest,
+    authorization: Optional[str] = None,
+    x_api_key: Optional[str] = None,
+):
+    text = request.prompt.strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="Prompt tidak boleh kosong")
+    result = chat(
+        ChatRequest(
+            model=request.model,
+            messages=[Message(role="user", content=text)],
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+        ),
+        authorization=authorization,
+        x_api_key=x_api_key,
+    )
+    return {
+        "model": result["model"],
+        "response": result["choices"][0]["message"]["content"],
+    }
+
+
+@app.get("/api/chat")
+def get_api_chat(
+    api: str = Query(..., min_length=1),
+    prompt: str = Query(..., min_length=1, max_length=32000),
+    model: str = "zydra",
+):
+    return generate_prompt_response(
+        PromptRequest(prompt=prompt, model=model),
+        x_api_key=api,
+    )
+
+
+@app.post("/api/chat")
+def post_api_chat(
+    request: PromptRequest,
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None),
+):
+    return generate_prompt_response(request, authorization, x_api_key)
+
+
 @app.get("/v1/instructions")
 def get_instructions(
     authorization: Optional[str] = Header(None),
@@ -594,9 +655,10 @@ def ready():
     return health_status
 
 
-@app.get("/")
-def index():
-    return FileResponse(Path(__file__).parent / "static" / "index.html")
+@app.get("/", include_in_schema=False)
+@app.get("/docs", include_in_schema=False)
+def docs():
+    return FileResponse(Path(__file__).parent / "static" / "docs.html")
 
 
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")

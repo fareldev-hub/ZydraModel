@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dokumentasi API Zydra</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <style>
+    :root {
+      color-scheme: light;
+      font: 16px/1.5 system-ui, sans-serif;
+      --page: #f3f7f5;
+      --surface: #ffffff;
+      --text: #202c28;
+      --muted: #596a63;
+      --line: #d7e1dc;
+      --accent: #126b57;
+      --accent-soft: #e6f2ed;
+      --code: #eaf0ed;
+    }
+    body { max-width: 1040px; margin: 0 auto; padding: 24px; background: var(--page); color: var(--text); }
+    h1, h2, h3 { line-height: 1.2; }
+    .topbar, .actions, .key-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .topbar { justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+    .section { padding: 18px 0; border-bottom: 1px solid var(--line); }
+    .actions { margin-top: 12px; }
+    .button-link, button { display: inline-block; padding: 9px 14px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #ffffff; font: inherit; text-decoration: none; cursor: pointer; }
+    button:disabled { cursor: wait; opacity: .6; }
+    label { display: block; font-weight: 600; margin: 12px 0 4px; }
+    input, select { box-sizing: border-box; width: min(460px, 100%); padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+    textarea { box-sizing: border-box; width: 100%; min-height: 220px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--code); color: var(--text); font: 14px/1.5 ui-monospace, monospace; resize: vertical; }
+    code { overflow-wrap: anywhere; }
+    pre { max-width: 100%; overflow: auto; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--code); color: var(--text); }
+    pre code { white-space: pre; }
+    .route-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { white-space: nowrap; }
+    .method { font-weight: 700; }
+    .notice { padding: 12px; border-left: 3px solid var(--accent); background: var(--accent-soft); color: var(--text); }
+    .code-tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); margin: 14px 0; }
+    .code-tabs button { border-radius: 6px 6px 0 0; background: transparent; color: var(--muted); border-color: transparent; }
+    .code-tabs button[aria-selected="true"] { color: var(--accent); border-color: var(--line); background: var(--surface); }
+    .code-panel { position: relative; }
+    .code-panel pre { min-height: 180px; }
+    .code-panel code { font-size: 13px; }
+    .console-grid { display: grid; grid-template-columns: minmax(220px, .75fr) minmax(0, 1.6fr); gap: 18px; }
+    .console-panel { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .route-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+    .method-tag, .auth-tag { padding: 4px 8px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 700; }
+    .auth-tag { background: #f5eee2; color: #825a20; }
+    .endpoint-path { overflow-wrap: anywhere; font-family: ui-monospace, monospace; }
+    .response-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 20px; }
+    #response-status[data-ok="true"] { color: var(--accent); }
+    #response-status[data-ok="false"] { color: #a53d34; }
+    #response-output { min-height: 110px; max-height: 520px; }
+    .key-list { list-style: none; padding: 0; }
+    .key-row { justify-content: space-between; border-bottom: 1px solid var(--line); padding: 10px 0; }
+    #issued-key, #prompt-result { padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); overflow-wrap: anywhere; }
+    #login { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; padding: 20px; background: #20342dcc; }
+    #login[hidden], [hidden] { display: none !important; }
+    #login form { width: min(420px, 100%); padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); }
+    @media (max-width: 760px) { .console-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { body { padding: 16px; } th, td { padding: 8px 6px; } }
+  </style>
+</head>
+<body>
+  <div id="login">
+    <form id="login-form">
+      <h2>AUTH master</h2>
+      <p>Masuk untuk mengelola API key. Simpan master key dengan aman.</p>
+      <label for="master-key">Master key</label>
+      <input id="master-key" type="password" autocomplete="current-password" required>
+      <div class="actions"><button id="login-submit" type="submit">Masuk</button></div>
+      <p id="login-status" role="status"></p>
+    </form>
+  </div>
+
+  <header class="topbar">
+    <div><h1>Dokumentasi API</h1><p>Base URL: <code id="base-url"></code></p></div>
+    <a class="button-link" href="/openapi.json">OpenAPI JSON</a>
+  </header>
+
+  <main>
+    <section class="section" aria-labelledby="routes-heading">
+      <h2 id="routes-heading">Route tersedia</h2>
+      <p class="notice">Route bertanda API key menerima <code>Authorization: Bearer zdy-...</code> atau header <code>X-API-Key</code>. Route pengelolaan key hanya menerima AUTH master.</p>
+      <div class="route-table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Key</th><th>Fungsi</th></tr></thead>
+          <tbody>
+            <tr><td class="method">POST</td><td><code>/v1/prompt</code></td><td>API key</td><td>Kirim satu prompt, terima jawaban langsung dalam JSON.</td></tr>
+            <tr><td class="method">GET</td><td><code>/api/chat?api=...&amp;prompt=...</code></td><td>API key di query</td><td>Prompt sederhana melalui URL. Hindari untuk key sensitif karena URL dapat tercatat di log.</td></tr>
+            <tr><td class="method">POST</td><td><code>/api/chat</code></td><td>API key di header</td><td>Prompt sederhana; kirim <code>{"prompt":"..."}</code> dan terima JSON.</td></tr>
+            <tr><td class="method">POST</td><td><code>/v1/chat/completions</code></td><td>API key</td><td>Chat kompatibel OpenAI; mendukung riwayat, tools, dan stream.</td></tr>
+            <tr><td class="method">GET</td><td><code>/v1/models</code></td><td>API key</td><td>Daftar model tersedia.</td></tr>
+            <tr><td class="method">GET / PUT</td><td><code>/v1/instructions</code></td><td>API key</td><td>Baca atau ubah system instructions.</td></tr>
+            <tr><td class="method">GET / POST</td><td><code>/v1/api-keys</code></td><td>AUTH master</td><td>Lihat metadata key atau buat key baru.</td></tr>
+            <tr><td class="method">DELETE</td><td><code>/v1/api-keys/{key_id}</code></td><td>AUTH master</td><td>Cabut key.</td></tr>
+            <tr><td class="method">GET</td><td><code>/health</code>, <code>/status</code>, <code>/ready</code></td><td>Tidak</td><td>Cek status service dan kesiapan model.</td></tr>
+            <tr><td class="method">GET</td><td><code>/docs</code></td><td>Tidak</td><td>Halaman dokumentasi ini.</td></tr>
+            <tr><td class="method">GET</td><td><code>/openapi.json</code></td><td>Tidak</td><td>Schema OpenAPI.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="tester-heading">
+      <h2 id="tester-heading">API Explorer</h2>
+      <p>Pilih route, atur request, lalu lihat response langsung dari service.</p>
+      <div class="console-grid">
+        <aside class="console-panel" aria-label="Route dan autentikasi">
+          <label for="route-select">Route</label>
+          <select id="route-select">
+            <optgroup label="Prompt dan chat">
+              <option value="get-simple">GET /api/chat</option>
+              <option value="post-simple">POST /api/chat</option>
+              <option value="post-prompt">POST /v1/prompt</option>
+              <option value="post-completions">POST /v1/chat/completions</option>
+            </optgroup>
+            <optgroup label="Model dan instruksi">
+              <option value="get-models">GET /v1/models</option>
+              <option value="get-instructions">GET /v1/instructions</option>
+              <option value="put-instructions">PUT /v1/instructions</option>
+            </optgroup>
+            <optgroup label="API key management">
+              <option value="get-keys">GET /v1/api-keys</option>
+              <option value="post-keys">POST /v1/api-keys</option>
+              <option value="delete-key">DELETE /v1/api-keys/{key_id}</option>
+            </optgroup>
+            <optgroup label="Status dan dokumentasi">
+              <option value="get-health">GET /health</option>
+              <option value="get-status">GET /status</option>
+              <option value="get-ready">GET /ready</option>
+              <option value="get-root">GET /</option>
+              <option value="get-docs">GET /docs</option>
+              <option value="get-openapi">GET /openapi.json</option>
+            </optgroup>
+          </select>
+          <div class="route-meta">
+            <span id="route-method" class="method-tag"></span>
+            <span id="route-auth" class="auth-tag"></span>
+          </div>
+          <p id="route-description"></p>
+          <p class="notice">GET /api/chat mengirim API key melalui query URL sehingga dapat terekam di log. Gunakan POST untuk key sensitif.</p>
+        </aside>
+
+        <section class="console-panel" aria-label="Request dan response">
+          <div id="api-key-field">
+            <label for="active-key">API key</label>
+            <input id="active-key" type="password" autocomplete="off" placeholder="zdy-...; kosongkan untuk AUTH master">
+          </div>
+          <div id="query-fields" hidden>
+            <label for="query-prompt">Query prompt</label>
+            <input id="query-prompt" type="text" value="Balas singkat: API siap">
+          </div>
+          <div id="path-fields" hidden>
+            <label for="key-id">Key ID untuk route DELETE</label>
+            <input id="key-id" type="text" placeholder="Tempel id dari daftar key">
+          </div>
+          <div id="body-fields">
+            <label for="request-body">Request body (JSON)</label>
+            <textarea id="request-body" spellcheck="false"></textarea>
+          </div>
+          <div class="actions"><button id="send-request" type="button">Kirim request</button></div>
+          <div class="response-header"><strong>Response</strong><span id="response-status">Belum ada request</span></div>
+          <pre id="response-output" aria-live="polite">Response akan muncul di sini.</pre>
+        </section>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="key-management-heading">
+      <h2 id="key-management-heading">Buat API key</h2>
+      <p>Key dibuat dengan prefix <code>zdy-</code>, hanya ditampilkan sekali, dan database menyimpan hash-nya. Pembuatan, daftar, dan pencabutan key memerlukan AUTH master.</p>
+      <form id="key-form">
+        <label for="key-name">Nama key</label>
+        <input id="key-name" type="text" maxlength="80" placeholder="Contoh: aplikasi-mobile" required>
+        <div class="actions"><button id="create-key" type="submit">Buat API key</button></div>
+      </form>
+      <p id="key-status" role="status"></p>
+      <div id="issued-key" hidden>
+        <strong>Salin sekarang; key tidak akan ditampilkan lagi:</strong>
+        <pre><code id="issued-key-value"></code></pre>
+        <div class="actions"><button id="copy-key" type="button">Salin key</button></div>
+      </div>
+      <h3>Key tersimpan</h3>
+      <ul id="key-list" class="key-list"></ul>
+    </section>
+
+    <section class="section" aria-labelledby="code-samples-heading">
+      <h2 id="code-samples-heading">Contoh integrasi</h2>
+      <p>Gunakan API key terkelola. Untuk aplikasi server-side, simpan key di environment dan jangan kirim ke browser publik.</p>
+      <div class="code-tabs" role="tablist" aria-label="Bahasa contoh API">
+        <button type="button" role="tab" aria-selected="true" data-code-tab="browser-js">JavaScript</button>
+        <button type="button" role="tab" aria-selected="false" data-code-tab="node-js">Node.js</button>
+        <button type="button" role="tab" aria-selected="false" data-code-tab="express-js">Express</button>
+        <button type="button" role="tab" aria-selected="false" data-code-tab="python">Python</button>
+        <button type="button" role="tab" aria-selected="false" data-code-tab="curl">cURL</button>
+      </div>
+      <div class="code-panel" data-code-panel="browser-js">
+        <pre><code class="language-javascript">const API_BASE = "http://localhost:8000";
+const API_KEY = "zdy-ganti-dengan-key";
+
+const response = await fetch(`${API_BASE}/api/chat`, {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ prompt: "Apa itu fotosintesis?" })
+});
+
+const data = await response.json();
+console.log(data.response);</code></pre>
+        <button type="button" data-copy-sample="browser-js">Salin kode</button>
+      </div>
+      <div class="code-panel" data-code-panel="node-js" hidden>
+        <pre><code class="language-javascript">const API_BASE = process.env.ZYDRA_API_BASE || "http://localhost:8000";
+const API_KEY = process.env.ZYDRA_API_KEY;
+
+async function askZydra(prompt) {
+  const response = await fetch(`${API_BASE}/api/chat`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prompt })
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+  return data.response;
+}
+
+askZydra("Buat ringkasan satu kalimat.").then(console.log).catch(console.error);</code></pre>
+        <button type="button" data-copy-sample="node-js">Salin kode</button>
+      </div>
+      <div class="code-panel" data-code-panel="express-js" hidden>
+        <pre><code class="language-javascript">import express from "express";
+
+const app = express();
+app.use(express.json());
+
+app.post("/ask", async (req, res) => {
+  try {
+    const upstream = await fetch(`${process.env.ZYDRA_API_BASE}/api/chat`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.ZYDRA_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ prompt: req.body.prompt })
+    });
+    const data = await upstream.json();
+    res.status(upstream.status).json(data);
+  } catch (error) {
+    res.status(502).json({ error: error.message });
+  }
+});
+
+app.listen(3000);</code></pre>
+        <button type="button" data-copy-sample="express-js">Salin kode</button>
+      </div>
+      <div class="code-panel" data-code-panel="python" hidden>
+        <pre><code class="language-python">import os
+import requests
+
+response = requests.post(
+    f"{os.environ['ZYDRA_API_BASE']}/api/chat",
+    headers={"Authorization": f"Bearer {os.environ['ZYDRA_API_KEY']}"},
+    json={"prompt": "Jelaskan gravitasi secara singkat."},
+    timeout=120,
+)
+response.raise_for_status()
+print(response.json()["response"])</code></pre>
+        <button type="button" data-copy-sample="python">Salin kode</button>
+      </div>
+      <div class="code-panel" data-code-panel="curl" hidden>
+        <pre><code class="language-bash"># POST: disarankan, key dikirim lewat header
+curl "http://localhost:8000/api/chat" \
+  -H "Authorization: Bearer $ZYDRA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Buat ringkasan satu kalimat."}'
+
+# GET: key berada di query string dan dapat tercatat di log
+curl --get "http://localhost:8000/api/chat" \
+  --data-urlencode "api=$ZYDRA_API_KEY" \
+  --data-urlencode "prompt=Buat ringkasan satu kalimat."</code></pre>
+        <button type="button" data-copy-sample="curl">Salin kode</button>
+      </div>
+      <p id="sample-status" role="status"></p>
+    </section>
+
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const login = document.querySelector("#login");
+    const loginForm = document.querySelector("#login-form");
+    const masterInput = document.querySelector("#master-key");
+    const loginStatus = document.querySelector("#login-status");
+    const keyStatus = document.querySelector("#key-status");
+    const sampleStatus = document.querySelector("#sample-status");
+    const keyList = document.querySelector("#key-list");
+    const activeKeyInput = document.querySelector("#active-key");
+    const baseUrl = window.location.origin;
+    let masterKey = sessionStorage.getItem("zydra-auth") || "";
+    document.querySelector("#base-url").textContent = baseUrl;
+    activeKeyInput.value = sessionStorage.getItem("zydra-request-api-key") || "";
+
+    function showToast(icon, title) {
+      if (window.Swal) {
+        window.Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon,
+          title,
+          showConfirmButton: false,
+          timer: 2600,
+          timerProgressBar: true
+        });
+      } else {
+        keyStatus.textContent = title;
+        sampleStatus.textContent = title;
+      }
+    }
+
+    async function request(path, options = {}, key = masterKey) {
+      const headers = new Headers(options.headers || {});
+      headers.set("Authorization", `Bearer ${key}`);
+      if (options.body) headers.set("Content-Type", "application/json");
+      const response = await fetch(path, { ...options, headers });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+      return data;
+    }
+
+    async function loadKeys() {
+      const result = await request("/v1/api-keys");
+      keyList.replaceChildren();
+      for (const key of result.data) {
+        const item = document.createElement("li");
+        item.className = "key-row";
+        const detail = document.createElement("span");
+        detail.textContent = `${key.name} | ${key.prefix} | ${new Date(key.created_at).toLocaleString()}`;
+        const revoke = document.createElement("button");
+        revoke.type = "button";
+        revoke.textContent = "Cabut";
+        revoke.addEventListener("click", async () => {
+          if (window.Swal) {
+            const confirmation = await window.Swal.fire({
+              title: "Cabut API key?",
+              text: `${key.name} tidak dapat digunakan lagi.`,
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonText: "Cabut key",
+              cancelButtonText: "Batal",
+              confirmButtonColor: "#a53d34"
+            });
+            if (!confirmation.isConfirmed) return;
+          } else if (!window.confirm(`Cabut API key ${key.name}?`)) {
+            return;
+          }
+          try {
+            await request(`/v1/api-keys/${encodeURIComponent(key.id)}`, { method: "DELETE" });
+            if (activeKeyInput.value.startsWith(key.prefix.replace("...", ""))) {
+              activeKeyInput.value = "";
+              sessionStorage.removeItem("zydra-request-api-key");
+            }
+            keyStatus.textContent = "API key dicabut.";
+            showToast("success", "API key dicabut");
+            await loadKeys();
+          } catch (error) {
+            keyStatus.textContent = error.message;
+            showToast("error", error.message);
+          }
+        });
+        item.append(detail, revoke);
+        keyList.append(item);
+      }
+      if (!result.data.length) keyStatus.textContent = "Belum ada API key.";
+    }
+
+    async function unlock(key) {
+      masterKey = key;
+      try {
+        await request("/v1/api-keys", {}, masterKey);
+        sessionStorage.setItem("zydra-auth", masterKey);
+        login.hidden = true;
+        await loadKeys();
+      } catch (error) {
+        masterKey = "";
+        throw error;
+      }
+    }
+
+    loginForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      loginStatus.textContent = "Memverifikasi...";
+      try {
+        await unlock(masterInput.value);
+        loginStatus.textContent = "";
+      } catch (error) {
+        loginStatus.textContent = error.message;
+        masterInput.focus();
+        masterInput.select();
+      }
+    });
+
+    if (masterKey) {
+      unlock(masterKey).catch(() => {
+        sessionStorage.removeItem("zydra-auth");
+        login.hidden = false;
+      });
+    } else {
+      masterInput.focus();
+    }
+
+    document.querySelector("#key-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const button = document.querySelector("#create-key");
+      button.disabled = true;
+      keyStatus.textContent = "Membuat key...";
+      try {
+        const result = await request("/v1/api-keys", {
+          method: "POST",
+          body: JSON.stringify({ name: document.querySelector("#key-name").value.trim() })
+        });
+        document.querySelector("#issued-key-value").textContent = result.api_key;
+        document.querySelector("#issued-key").hidden = false;
+        activeKeyInput.value = result.api_key;
+        sessionStorage.setItem("zydra-request-api-key", result.api_key);
+        document.querySelector("#key-name").value = "";
+        keyStatus.textContent = "Key aktif untuk playground. Simpan key ini sekarang.";
+        if (window.Swal) {
+          await window.Swal.fire({
+            icon: "success",
+            title: "API key dibuat",
+            text: "Salin key yang tampil di halaman sekarang. Nilai ini tidak akan ditampilkan lagi."
+          });
+        } else {
+          showToast("success", "API key dibuat; salin key yang tampil sekarang");
+        }
+        await loadKeys();
+      } catch (error) {
+        keyStatus.textContent = error.message;
+        showToast("error", error.message);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.querySelector("#copy-key").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(document.querySelector("#issued-key-value").textContent);
+        keyStatus.textContent = "Key berhasil disalin.";
+        showToast("success", "API key disalin");
+      } catch {
+        keyStatus.textContent = "Clipboard tidak tersedia; salin key yang tampil.";
+        showToast("info", "Clipboard tidak tersedia");
+      }
+    });
+
+    activeKeyInput.addEventListener("input", () => {
+      sessionStorage.setItem("zydra-request-api-key", activeKeyInput.value.trim());
+    });
+
+    const routeSelect = document.querySelector("#route-select");
+    const requestBody = document.querySelector("#request-body");
+    const bodyFields = document.querySelector("#body-fields");
+    const queryFields = document.querySelector("#query-fields");
+    const pathFields = document.querySelector("#path-fields");
+    const routeDescription = document.querySelector("#route-description");
+    const responseStatus = document.querySelector("#response-status");
+    const responseOutput = document.querySelector("#response-output");
+    const routes = {
+      "get-simple": { method: "GET", path: "/api/chat", auth: "query", queryPrompt: true, description: "Prompt sederhana; API key dan prompt dikirim sebagai query." },
+      "post-simple": { method: "POST", path: "/api/chat", auth: "api", body: { prompt: "Halo, Zydra!" }, description: "Prompt sederhana dengan API key di header." },
+      "post-prompt": { method: "POST", path: "/v1/prompt", auth: "api", body: { prompt: "Halo, Zydra!", model: "zydra" }, description: "Prompt singkat, respons langsung dalam JSON." },
+      "post-completions": { method: "POST", path: "/v1/chat/completions", auth: "api", body: { model: "zydra", messages: [{ role: "user", content: "Halo, Zydra!" }] }, description: "Chat kompatibel OpenAI; ubah body untuk riwayat, tools, atau stream." },
+      "get-models": { method: "GET", path: "/v1/models", auth: "api", description: "Daftar model yang tersedia." },
+      "get-instructions": { method: "GET", path: "/v1/instructions", auth: "api", description: "Baca system instructions aktif." },
+      "put-instructions": { method: "PUT", path: "/v1/instructions", auth: "api", body: { instructions: "Jawab ringkas dan gunakan Bahasa Indonesia." }, description: "Perbarui system instructions." },
+      "get-keys": { method: "GET", path: "/v1/api-keys", auth: "master", description: "Daftar metadata API key; key/hash rahasia tidak dikembalikan." },
+      "post-keys": { method: "POST", path: "/v1/api-keys", auth: "master", body: { name: "api-explorer" }, description: "Buat API key baru; salin key penuh dari response sekarang." },
+      "delete-key": { method: "DELETE", path: "/v1/api-keys/{key_id}", auth: "master", pathKey: true, description: "Cabut API key berdasarkan ID." },
+      "get-health": { method: "GET", path: "/health", auth: "none", description: "Status service dan kesiapan model." },
+      "get-status": { method: "GET", path: "/status", auth: "none", description: "Tahap setup model saat ini." },
+      "get-ready": { method: "GET", path: "/ready", auth: "none", description: "HTTP 200 saat model siap; selain itu HTTP 503." },
+      "get-root": { method: "GET", path: "/", auth: "none", description: "Halaman dokumentasi API." },
+      "get-docs": { method: "GET", path: "/docs", auth: "none", description: "Halaman dokumentasi API." },
+      "get-openapi": { method: "GET", path: "/openapi.json", auth: "none", description: "Schema OpenAPI dalam JSON." }
+    };
+
+    function updateRouteForm() {
+      const route = routes[routeSelect.value];
+      document.querySelector("#route-method").textContent = route.method;
+      document.querySelector("#route-auth").textContent = {
+        none: "Tanpa auth",
+        api: "API key",
+        query: "API key di query",
+        master: "AUTH master"
+      }[route.auth];
+      routeDescription.textContent = route.description;
+      document.querySelector("#api-key-field").hidden = route.auth === "none" || route.auth === "master";
+      queryFields.hidden = !route.queryPrompt;
+      pathFields.hidden = !route.pathKey;
+      bodyFields.hidden = !route.body;
+      requestBody.value = route.body ? JSON.stringify(route.body, null, 2) : "";
+    }
+
+    routeSelect.addEventListener("change", updateRouteForm);
+    updateRouteForm();
+
+    document.querySelectorAll("[data-code-tab]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll("[data-code-tab]").forEach((item) => {
+          item.setAttribute("aria-selected", String(item === tab));
+        });
+        document.querySelectorAll("[data-code-panel]").forEach((panel) => {
+          panel.hidden = panel.dataset.codePanel !== tab.dataset.codeTab;
+        });
+        const code = document.querySelector(`[data-code-panel="${tab.dataset.codeTab}"] code`);
+        if (window.hljs && code) window.hljs.highlightElement(code);
+      });
+    });
+
+    if (window.hljs) window.hljs.highlightAll();
+
+    document.querySelectorAll("[data-copy-sample]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const sample = document.querySelector(`[data-code-panel="${button.dataset.copySample}"] code`);
+        const code = sample.textContent
+          .replaceAll("http://localhost:8000", baseUrl)
+          .replaceAll("zdy-ganti-dengan-key", activeKeyInput.value.trim() || masterKey);
+        try {
+          await navigator.clipboard.writeText(code);
+          showToast("success", "Contoh kode disalin");
+        } catch {
+          sampleStatus.textContent = "Clipboard tidak tersedia; salin kode dari blok contoh.";
+          showToast("info", "Clipboard tidak tersedia");
+        }
+      });
+    });
+
+    document.querySelector("#send-request").addEventListener("click", async () => {
+      const route = routes[routeSelect.value];
+      const button = document.querySelector("#send-request");
+      button.disabled = true;
+      responseStatus.textContent = "Mengirim...";
+      responseStatus.removeAttribute("data-ok");
+      responseOutput.textContent = "Menunggu response...";
+      try {
+        let path = route.path;
+        if (route.pathKey) {
+          const keyId = document.querySelector("#key-id").value.trim();
+          if (!keyId) throw new Error("Isi key_id terlebih dahulu.");
+          path = path.replace("{key_id}", encodeURIComponent(keyId));
+        }
+
+        const url = new URL(path, baseUrl);
+        const headers = new Headers();
+        const apiKey = route.auth === "master"
+          ? masterKey
+          : activeKeyInput.value.trim() || masterKey;
+        if (route.auth === "api") headers.set("Authorization", `Bearer ${apiKey}`);
+        if (route.auth === "master") headers.set("Authorization", `Bearer ${masterKey}`);
+        const options = { method: route.method, headers };
+
+        if (route.queryPrompt) {
+          if (!apiKey) throw new Error("Masukkan API key terlebih dahulu.");
+          url.searchParams.set("api", apiKey);
+          url.searchParams.set("prompt", document.querySelector("#query-prompt").value.trim());
+        }
+        if (route.body) {
+          let body;
+          try {
+            body = JSON.parse(requestBody.value);
+          } catch (error) {
+            throw new Error(`Request body JSON tidak valid: ${error.message}`);
+          }
+          headers.set("Content-Type", "application/json");
+          options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, options);
+        const responseText = await response.text();
+        let display = responseText;
+        if (response.headers.get("content-type")?.includes("application/json")) {
+          try {
+            const data = JSON.parse(responseText);
+            display = JSON.stringify(data, null, 2);
+            if (routeSelect.value === "post-keys" && data.api_key) {
+              activeKeyInput.value = data.api_key;
+              sessionStorage.setItem("zydra-request-api-key", data.api_key);
+            }
+          } catch {
+            display = responseText;
+          }
+        }
+        responseStatus.textContent = `${response.status} ${response.statusText}`;
+        responseStatus.dataset.ok = String(response.ok);
+        responseOutput.textContent = display || "(response kosong)";
+        showToast(response.ok ? "success" : "error", `HTTP ${response.status} ${response.statusText}`);
+      } catch (error) {
+        responseStatus.textContent = "Request gagal";
+        responseStatus.dataset.ok = "false";
+        responseOutput.textContent = error.message;
+        showToast("error", error.message);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
