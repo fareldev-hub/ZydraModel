@@ -270,6 +270,15 @@ def available_ollama_models() -> List[str]:
     return [item.get("name", "") for item in models if isinstance(item, dict)]
 
 
+def model_owner(model_name: str) -> str:
+    model_family = model_name.split(":", 1)[0].lower()
+    if model_family == "zydra":
+        return CREATOR
+    if model_family.startswith("qwen"):
+        return "Qwen"
+    return "Ollama"
+
+
 def require_available_model(model: str) -> None:
     model_names = available_ollama_models()
     if any(name == model or name.startswith(f"{model}:") for name in model_names):
@@ -460,7 +469,7 @@ def models(
     return {
         "object": "list",
         "data": [
-            {"id": name, "object": "model", "owned_by": "fareldev"}
+            {"id": name, "object": "model", "owned_by": model_owner(name)}
             for name in model_names
         ],
     }
