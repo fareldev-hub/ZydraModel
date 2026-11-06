@@ -1,4 +1,4 @@
-# Zydra
+# Zydra Model (text-based)
 
 <p align="center">
   <a href="https://github.com/fareldev-hub/ZydraModel">
