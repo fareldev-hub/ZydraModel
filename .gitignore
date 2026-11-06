@@ -1,5 +1,2 @@
 .env
 __pycache__/
-database/api.json
-database/api.json.*.tmp
-.gitignore
