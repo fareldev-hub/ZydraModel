@@ -1,8 +1,54 @@
 # Zydra
 
-Zydra adalah API chat teks yang menjalankan Ollama dan model `smollm2:1.7b` dalam
+<p align="center">
+  <a href="https://github.com/fareldev-hub/ZydraModel">
+    <img src="https://img.shields.io/badge/Zydra-AI%20Chat-6C5CE7?style=for-the-badge&logo=ollama&logoColor=white" alt="Zydra AI Chat">
+  </a>
+  <a href="https://www.docker.com/">
+    <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  </a>
+  <a href="https://ollama.com/library/phi">
+    <img src="https://img.shields.io/badge/Model-Phi--2-412991?style=for-the-badge" alt="Microsoft Phi-2">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://img.shields.io/github/commit-activity/t/fareldev-hub/ZydraModel">
+    <img src="https://img.shields.io/github/commit-activity/t/fareldev-hub/ZydraModel?label=total%20commits&style=flat-square" alt="Total commits">
+  </a>
+  <a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
+    <img src="https://img.shields.io/github/contributors/fareldev-hub/ZydraModel?style=flat-square" alt="Contributors">
+  </a>
+  <a href="https://img.shields.io/badge/model%20size-~1.6%20GB-blue?style=flat-square">
+    <img src="https://img.shields.io/badge/model%20size-~1.6%20GB-blue?style=flat-square" alt="Ukuran model sekitar 1,6 GB">
+  </a>
+  <a href="https://github.com/fareldev-hub/ZydraModel/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/code%20license-MIT-green?style=flat-square" alt="Lisensi kode MIT">
+  </a>
+</p>
+
+Zydra adalah API chat teks yang menjalankan Ollama dan model `phi` dalam
 satu container Docker. Setup pertama kali mengunduh model, membuat model `zydra`,
 lalu menjalankan API dan dokumentasi interaktif.
+
+## Statistik dan kontribusi
+
+<p>
+  <a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
+    <img src="https://github-profile-summary-cards.vercel.app/api/cards/profile-details?username=fareldev-hub&theme=github_dark" alt="Grafik kontribusi dan aktivitas commit GitHub Farel Alfareza">
+  </a>
+</p>
+
+Grafik khusus repository Zydra:
+
+<p>
+  <a href="https://github.com/fareldev-hub/ZydraModel/graphs/commit-activity">
+    <img src="https://img.shields.io/badge/Buka-grafik%20commit%20Zydra-24292F?style=for-the-badge&logo=github&logoColor=white" alt="Buka grafik commit Zydra">
+  </a>
+  <a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
+    <img src="https://img.shields.io/badge/Buka-grafik%20kontributor%20Zydra-6C5CE7?style=for-the-badge&logo=github&logoColor=white" alt="Buka grafik kontributor Zydra">
+  </a>
+</p>
 
 ## Persiapan
 
@@ -54,9 +100,9 @@ docker logs -f zydra
 ```
 
 Setup selesai saat log menampilkan `Setup selesai`. Proses ini mengunduh
-`smollm2:1.7b` lalu membuat model `zydra`. Unduhan pertama dapat memerlukan waktu
-dan ruang disk beberapa GB. Hentikan tampilan log dengan `Ctrl+C`; container
-tetap berjalan.
+`phi` lalu membuat model `zydra`. Unduhan model sekitar 1,6 GB; sediakan
+ruang disk tambahan untuk Ollama dan data aplikasi. Hentikan tampilan log dengan
+`Ctrl+C`; container tetap berjalan.
 
 Pastikan API dan model siap:
 
@@ -143,12 +189,10 @@ Semua respons JSON API menyertakan properti `creator` bernilai
 
 ## Lisensi
 
-Lisensi MIT di [LICENSE](LICENSE) hanya berlaku untuk kode proyek. Base model
-`HuggingFaceTB/SmolLM2-1.7B-Instruct` (`smollm2:1.7b`) memakai Apache License
-2.0 yang mengizinkan penggunaan komersial dengan syarat lisensinya dipenuhi.
-Salinan lisensi dan notice model tersedia di `MODEL_LICENSES/`. Lisensi model
-tidak digantikan oleh lisensi MIT proyek. Docker image turut menyertakan berkas
-tersebut di `/root/MODEL_LICENSES`.
+Base model Microsoft Phi-2 (`phi`) memakai MIT, bukan Apache 2.0; ukuran unduh
+varian Ollama yang digunakan sekitar 1,6 GB. Salinan lisensi model dan notice
+tersedia di `MODEL_LICENSES/` dan disertakan dalam Docker image di
+`/root/MODEL_LICENSES`. Lisensi model berlaku terpisah dari kode proyek.
 
 ## Perintah Docker
 
@@ -167,5 +211,26 @@ Dokumentasi route dan contoh integrasi, generator API key, serta uji prompt
 tersedia di <http://localhost:8000/docs>. Root service `/` juga mengarah langsung
 ke halaman dokumentasi tersebut.
 
-Notice dan salinan lisensi base model tersedia di `MODEL_LICENSES/`.
+Notice base model tersedia di `MODEL_LICENSES/`.
 
+---
+
+<div align="center">
+  <h2>Tentang Pembuat</h2>
+  <a href="https://github.com/fareldev-hub">
+    <img src="https://github.com/fareldev-hub.png?size=160" width="112" alt="Avatar Farel Alfareza">
+  </a>
+  <h3>Farel Alfareza</h3>
+  <p>Pembuat dan pemelihara <strong>Zydra</strong>.<br>
+  <a href="https://github.com/fareldev-hub">@fareldev-hub di GitHub</a></p>
+  <p>Jika project ini bermanfaat, dukung pengembangannya melalui:</p>
+  <a href="https://trakteer.id/farel_alfarez">
+    <img src="https://img.shields.io/badge/ThePort%20(%40farel__alfarez)-Trakteer-BE1E2D?style=for-the-badge" alt="ThePort (@farel_alfarez) • Trakteer">
+  </a>
+  &nbsp;
+  <a href="https://saweria.co/fareldev">
+    <img src="https://img.shields.io/badge/Donasi%20via-Saweria-FFB000?style=for-the-badge" alt="Donasi via Saweria">
+  </a>
+  <br><br>
+  <sub>Terima kasih atas dukungan dan kontribusinya untuk Zydra 💜</sub>
+</div>

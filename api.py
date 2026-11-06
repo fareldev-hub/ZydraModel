@@ -281,8 +281,8 @@ def model_owner(model_name: str) -> str:
     model_family = model_name.split(":", 1)[0].lower()
     if model_family == "zydra":
         return CREATOR
-    if model_family.startswith("smollm2"):
-        return "HuggingFaceTB"
+    if model_family == "phi":
+        return "Microsoft"
     return "Ollama"
 
 

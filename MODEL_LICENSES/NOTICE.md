@@ -1,9 +1,10 @@
 # Third-Party Model Notice
 
-This project uses **SmolLM2 1.7B Instruct** from HuggingFaceTB through the Ollama tag `smollm2:1.7b`.
+This project uses **Microsoft Phi-2** through the Ollama tag `phi`.
 
-- Upstream model: https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct
-- Model license: Apache License 2.0
-- License text: [Apache-2.0.txt](Apache-2.0.txt)
+- Upstream model: https://huggingface.co/microsoft/phi-2
+- Ollama model: https://ollama.com/library/phi
+- Model license: [MIT License](https://huggingface.co/microsoft/phi-2/blob/main/LICENSE)
+- Ollama download size: approximately 1.6 GB
 
-The project code is separately licensed under MIT in the repository's `LICENSE` file. That MIT license does not replace or relicense the SmolLM2 model weights. Model weights are pulled by Ollama during container setup and are not stored in this source repository.
+The project code is separately licensed under MIT in the repository's `LICENSE` file. The model weights are pulled by Ollama during container setup and are not stored in this source repository.

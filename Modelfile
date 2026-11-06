@@ -1,4 +1,4 @@
-FROM smollm2:1.7b
+FROM phi
 
 PARAMETER temperature 0.7
 PARAMETER top_p 0.9
