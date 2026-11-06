@@ -30,15 +30,15 @@ until curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; do
 done
 echo "Ollama siap"
 
-if ! ollama show qwen2.5:3b >/dev/null 2>&1; then
-    write_status "downloading_base_model" "Mengunduh model dasar qwen2.5:3b."
-    echo "Pull qwen2.5:3b..."
-    ollama pull qwen2.5:3b
+if ! ollama show smollm2:1.7b >/dev/null 2>&1; then
+    write_status "downloading_base_model" "Mengunduh model dasar smollm2:1.7b."
+    echo "Pull smollm2:1.7b..."
+    ollama pull smollm2:1.7b
 else
-    echo "qwen2.5:3b sudah ada"
+    echo "smollm2:1.7b sudah ada"
 fi
 
-write_status "creating_zydra_model" "Membuat model Zydra dari qwen2.5:3b."
+write_status "creating_zydra_model" "Membuat model Zydra dari smollm2:1.7b."
 echo "Membuat atau memperbarui model Zydra..."
 ollama create zydra -f /root/Modelfile
 

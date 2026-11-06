@@ -1,6 +1,6 @@
 # Zydra
 
-Zydra adalah API chat teks yang menjalankan Ollama dan model `qwen2.5:3b` dalam
+Zydra adalah API chat teks yang menjalankan Ollama dan model `smollm2:1.7b` dalam
 satu container Docker. Setup pertama kali mengunduh model, membuat model `zydra`,
 lalu menjalankan API dan dokumentasi interaktif.
 
@@ -54,7 +54,7 @@ docker logs -f zydra
 ```
 
 Setup selesai saat log menampilkan `Setup selesai`. Proses ini mengunduh
-`qwen2.5:3b` lalu membuat model `zydra`. Unduhan pertama dapat memerlukan waktu
+`smollm2:1.7b` lalu membuat model `zydra`. Unduhan pertama dapat memerlukan waktu
 dan ruang disk beberapa GB. Hentikan tampilan log dengan `Ctrl+C`; container
 tetap berjalan.
 
@@ -141,6 +141,15 @@ tidak disimpan dalam file.
 Semua respons JSON API menyertakan properti `creator` bernilai
 `farel alfareza`.
 
+## Lisensi
+
+Lisensi MIT di [LICENSE](LICENSE) hanya berlaku untuk kode proyek. Base model
+`HuggingFaceTB/SmolLM2-1.7B-Instruct` (`smollm2:1.7b`) memakai Apache License
+2.0 yang mengizinkan penggunaan komersial dengan syarat lisensinya dipenuhi.
+Salinan lisensi dan notice model tersedia di `MODEL_LICENSES/`. Lisensi model
+tidak digantikan oleh lisensi MIT proyek. Docker image turut menyertakan berkas
+tersebut di `/root/MODEL_LICENSES`.
+
 ## Perintah Docker
 
 ```sh
@@ -158,6 +167,5 @@ Dokumentasi route dan contoh integrasi, generator API key, serta uji prompt
 tersedia di <http://localhost:8000/docs>. Root service `/` juga mengarah langsung
 ke halaman dokumentasi tersebut.
 
-## Lisensi
+Notice dan salinan lisensi base model tersedia di `MODEL_LICENSES/`.
 
-Proyek ini menggunakan lisensi MIT. Lihat [LICENSE](LICENSE).

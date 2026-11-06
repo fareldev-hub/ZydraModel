@@ -24,6 +24,7 @@ WORKDIR /root
 COPY requirements.txt /root/requirements.txt
 RUN /opt/venv/bin/pip install --no-cache-dir -r /root/requirements.txt
 COPY Modelfile /root/Modelfile
+COPY MODEL_LICENSES /root/MODEL_LICENSES
 COPY api.py /root/api.py
 COPY run.sh /root/run.sh
 COPY entrypoint.sh /root/entrypoint.sh
