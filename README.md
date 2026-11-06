@@ -180,9 +180,6 @@ diabaikan Git. Di Docker, `API_KEYS_FILE=/data/database/api.json` menempatkannya
 di volume `zydra-data` sehingga tetap ada saat container dibuat ulang. Key asli
 tidak disimpan dalam file.
 
-Semua respons JSON API menyertakan properti `creator` bernilai
-`farel alfareza`.
-
 ## Lisensi
 
 Base model Google Gemma 3 1B (`gemma3:1b`) memakai Gemma Terms of Use, bukan
