@@ -70,15 +70,16 @@ membutuhkan checkpoint dasar Qwen untuk bobot yang tidak diubah saat training;
 folder base tidak boleh dihapus selama adapter belum digabungkan. Folder
 `model/` diabaikan Git agar bobot model tidak masuk ke repository.
 
-Buat atau edit `.env`, gunakan password master yang kuat, dan jangan commit
-file tersebut:
+Salin `.env.example` menjadi `.env`, lalu isi `AUTH` dengan password master
+yang kuat. Jangan commit file `.env`. Jika `AUTH` dibiarkan kosong, aplikasi
+membuat password secara otomatis pada startup pertama dan menyimpannya di
+`AUTH_FILE`:
 
-```dotenv
-AUTH=ganti-dengan-password-kuat
-MODEL_PATH=/app/model/zydra-base
-MODEL_LORA_PATH=/app/model/zydra-lora
-API_KEYS_FILE=/data/database/api.json
+```sh
+cp .env.example .env
 ```
+
+`.env.example` mencantumkan variabel runtime beserta nilai default-nya.
 
 Runtime menggunakan Transformers dan PEFT untuk menerapkan adapter ke checkpoint
 dasar lokal. Container tidak membutuhkan file GGUF atau mengunduh model saat
