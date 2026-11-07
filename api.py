@@ -159,6 +159,25 @@ class TransformersChatModel:
             term in latest_user_message for term in assistant_terms
         )
 
+    def _owner_question(self, messages):
+        latest_user_message = next(
+            (
+                message["content"].strip().lower()
+                for message in reversed(messages)
+                if message["role"] == "user"
+            ),
+            "",
+        )
+        owner_terms = ("pemilik", "dimiliki", "owner", "owns", "owned by")
+        zydra_terms = (
+            "zydra", "kamu", "anda", "you", "your", "asisten ini", "ai ini",
+            "pemiliknya", "pemilikmu", "ownernya", "owner-nya", "pemilik baru",
+            "owner baru",
+        )
+        return any(term in latest_user_message for term in owner_terms) and any(
+            term in latest_user_message for term in zydra_terms
+        )
+
     def _name_question(self, messages):
         latest_user_message = next(
             (
@@ -176,6 +195,18 @@ class TransformersChatModel:
         return any(phrase in latest_user_message for phrase in name_phrases)
 
     def _ensure_creator_answer(self, messages, content):
+        if self._owner_question(messages):
+            question = next(
+                (
+                    message["content"].strip().lower()
+                    for message in reversed(messages)
+                    if message["role"] == "user"
+                ),
+                "",
+            )
+            if any(term in question for term in ("who", "what", "your", "owned by")):
+                return "Zydra is owned by Farel Alfareza (Fareldev)."
+            return "Pemilik Zydra adalah Farel Alfareza (Fareldev)."
         is_creator_question = self._creator_question(messages)
         is_name_question = self._name_question(messages)
         if is_creator_question and is_name_question:
