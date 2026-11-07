@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fa">
+  <meta name="description" content="Dokumentasi interaktif dan API explorer Zydra.">
+  <title>Zydra API</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #202b3c;
+      background: #f5f7fa;
+      --border: #d9e0e8;
+      --muted: #64748b;
+      --blue: #1769aa;
+      --panel: #fff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    header { height: 66px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .brand { display: flex; align-items: center; gap: 10px; color: #17283e; text-decoration: none; font-size: 19px; font-weight: 750; }
+    .brand-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 9px; color: white; background: #1769aa; }
+    .top-note { color: var(--muted); font-size: 13px; }
+    main { padding: 34px 0 64px; }
+    h1 { margin: 0; font-size: 30px; letter-spacing: -.04em; }
+    .intro { margin: 6px 0 25px; color: var(--muted); }
+    h2 { margin: 0; font-size: 18px; }
+    label { display: block; margin: 0 0 5px; font-size: 12px; font-weight: 700; }
+    input, textarea { width: 100%; padding: 9px 11px; border: 1px solid #b8c4d2; border-radius: 5px; outline: none; color: #202b3c; background: #fff; }
+    input:focus, textarea:focus { border-color: #3b82b5; box-shadow: 0 0 0 2px #3b82b522; }
+    textarea { min-height: 94px; resize: vertical; font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 11px; }
+    .section-heading span { color: var(--muted); font-size: 12px; }
+    #endpoint-list { display: grid; gap: 12px; }
+    .endpoint { overflow: hidden; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); }
+    .endpoint-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 15px; }
+    .route-info { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .method { min-width: 72px; padding: 4px 7px; border-radius: 4px; color: white; text-align: center; font-size: 11px; font-weight: 800; letter-spacing: .03em; }
+    .method.get { background: #16834b; }
+    .method.post { background: #1769aa; }
+    .method.delete { background: #c43b40; }
+    code { font: 13px ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+    .route-desc { color: var(--muted); font-size: 12px; }
+    .auth-badge { color: #758196; font-size: 11px; }
+    .try-button, .execute-button, .cancel-button, .copy-button { min-height: 34px; padding: 6px 12px; border: 1px solid #1769aa; border-radius: 5px; color: #1769aa; background: white; font-weight: 700; white-space: nowrap; }
+    .key-create-button { min-height: 36px; padding: 7px 12px; border: 1px solid #1769aa; border-radius: 5px; color: white; background: #1769aa; font-weight: 700; white-space: nowrap; }
+    .endpoint-actions { display: flex; align-items: center; gap: 7px; }
+    .try-button:hover, .copy-button:hover { background: #edf6fc; }
+    .key-create-button:hover { background: #12598f; }
+    .execute-button { color: white; background: #1769aa; }
+    .execute-button:hover { background: #12598f; }
+    .cancel-button { border-color: var(--border); color: #475569; }
+    .try-area { padding: 16px; border-top: 1px solid var(--border); background: #fbfcfe; }
+    .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field.full { grid-column: 1 / -1; }
+    .field-note { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .path-preview { margin: 0 0 13px; color: #526176; font-size: 12px; }
+    .actions { display: flex; gap: 8px; margin-top: 14px; }
+    .response { margin-top: 15px; overflow: hidden; border: 1px solid var(--border); border-radius: 6px; background: white; }
+    .response-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 11px; border-bottom: 1px solid #e8edf2; }
+    .response-status { color: var(--muted); font-size: 12px; font-weight: 750; }
+    .response-status[data-ok="true"] { color: #16834b; }
+    .response-status[data-ok="false"] { color: #c43b40; }
+    .response pre, .example-code { max-height: 360px; min-height: 50px; margin: 0; padding: 12px; overflow: auto; background-color: #f8fafc !important; color: #263445; font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .example-code code { display: block; background-color: transparent !important; color: inherit; }
+    .json-string { color: #087443; }
+    .json-number { color: #a34100; }
+    .json-boolean { color: #7c3aed; }
+    .json-key { color: #155eaa; font-weight: 700; }
+    .code-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border: 1px solid #e8edf2; border-bottom: 0; border-radius: 5px 5px 0 0; color: var(--muted); background: #f1f5f9; font-size: 11px; }
+    .code-toolbar + .example-code { border: 1px solid #e8edf2; border-radius: 0 0 5px 5px; }
+    .code-token-keyword { color: #7c3aed; font-weight: 700; }
+    .code-token-string { color: #087443; }
+    .code-token-comment { color: #718096; font-style: italic; }
+    .code-token-number { color: #a34100; }
+    .code-token-function { color: #155eaa; }
+    .code-token-literal { color: #b4235a; }
+    .copy-example-button { padding: 3px 8px; border: 1px solid #cbd5e1; border-radius: 4px; color: #334155; background: white; font-size: 11px; font-weight: 700; }
+    .copy-example-button:hover { border-color: #1769aa; color: #1769aa; }
+    .examples { margin-top: 30px; padding: 18px; border: 1px solid var(--border); border-radius: 7px; background: white; }
+    .examples h2 { margin-bottom: 5px; }
+    .examples-intro { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+    .example-tabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .example-tab { padding: 6px 10px; border: 1px solid var(--border); border-radius: 5px; color: #475569; background: #fff; font-weight: 650; }
+    .example-tab[aria-selected="true"] { border-color: #1769aa; color: #1769aa; background: #edf6fc; }
+    .example-panel h3 { margin: 0 0 8px; font-size: 14px; }
+    .example-panel p { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
+    .example-panel[hidden] { display: none; }
+    footer { display: flex; justify-content: space-between; gap: 12px; padding: 18px 0; color: var(--muted); font-size: 12px; }
+    footer a { color: #1769aa; text-decoration: none; }
+    @media (max-width: 680px) {
+      .shell { width: calc(100% - 24px); }
+      .top-note { display: none; }
+      main { padding-top: 25px; }
+      h1 { font-size: 26px; }
+      .endpoint-top { align-items: flex-start; }
+      .route-info { gap: 7px; }
+      .route-desc { flex-basis: 100%; }
+      .auth-badge { flex-basis: 100%; }
+      .try-button { padding: 6px 9px; }
+      .endpoint-actions { gap: 5px; }
+      .field-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app-shell" hidden>
+  <header class="shell">
+    <a class="brand" href="/" aria-label="Zydra API"><span class="brand-icon" aria-hidden="true">Z</span><span>Zydra API</span></a>
+    <span class="top-note">Dokumentasi API · API Explorer</span>
+  </header>
+  <main class="shell">
+    <h1>Zydra API</h1>
+    <p class="intro">Pilih endpoint, tekan <strong>Try it out</strong>, isi parameter bila diperlukan, lalu jalankan request dan lihat response JSON.</p>
+
+    <div class="section-heading">
+      <h2>Endpoints</h2>
+      <button class="key-create-button" id="key-create-button" type="button">+ Buat API key</button>
+    </div>
+    <section id="endpoint-list" aria-label="Daftar API endpoints"></section>
+
+    <section class="examples" aria-labelledby="examples-title">
+      <h2 id="examples-title">Contoh penggunaan API</h2>
+      <p class="examples-intro">Semua route yang berinteraksi dengan model atau mengelola API key membutuhkan credential. Status layanan dapat diakses tanpa key. Gunakan API key pada header agar tidak bocor ke access log URL.</p>
+      <div class="example-tabs" role="tablist" aria-label="Bahasa contoh">
+        <button class="example-tab" type="button" role="tab" id="tab-node" aria-controls="example-node" aria-selected="true">Node.js backend</button>
+        <button class="example-tab" type="button" role="tab" id="tab-browser" aria-controls="example-browser" aria-selected="false">JavaScript fetch</button>
+        <button class="example-tab" type="button" role="tab" id="tab-python" aria-controls="example-python" aria-selected="false">Python</button>
+        <button class="example-tab" type="button" role="tab" id="tab-curl" aria-controls="example-curl" aria-selected="false">cURL</button>
+      </div>
+      <article class="example-panel" id="example-node" role="tabpanel" aria-labelledby="tab-node">
+        <h3>Node.js backend (Express)</h3>
+        <p>Simpan key di environment server, jangan kirim master/key dari frontend publik.</p>
+        <pre class="example-code language-javascript"><code>import express from "express";
+
+const app = express();
+app.use(express.json());
+
+app.post("/ask", async (req, res) =&gt; {
+  const response = await fetch("http://localhost:8000/v1/prompt", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": process.env.ZYDRA_API_KEY
+    },
+    body: JSON.stringify({ prompt: req.body.prompt })
+  });
+  res.status(response.status).json(await response.json());
+});
+
+app.listen(3000);</code></pre>
+      </article>
+      <article class="example-panel" id="example-browser" role="tabpanel" aria-labelledby="tab-browser" hidden>
+        <h3>JavaScript fetch</h3>
+        <p>Gunakan API key yang dibuat dari UI. Untuk aplikasi browser publik, panggil backend milikmu agar key tidak terekspos.</p>
+        <pre class="example-code language-javascript"><code>const response = await fetch("http://localhost:8000/v1/prompt", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-API-Key": apiKey
+  },
+  body: JSON.stringify({
+    prompt: "Jelaskan fotosintesis secara singkat."
+  })
+});
+
+const result = await response.json();
+console.log(result.response);</code></pre>
+      </article>
+      <article class="example-panel" id="example-python" role="tabpanel" aria-labelledby="tab-python" hidden>
+        <h3>Python backend</h3>
+        <pre class="example-code"><code>import os
+import requests
+
+response = requests.post(
+    "http://localhost:8000/v1/prompt",
+    headers={"X-API-Key": os.environ["ZYDRA_API_KEY"]},
+    json={"prompt": "Jelaskan fotosintesis secara singkat."},
+    timeout=120,
+)
+response.raise_for_status()
+print(response.json()["response"])</code></pre>
+      </article>
+      <article class="example-panel" id="example-curl" role="tabpanel" aria-labelledby="tab-curl" hidden>
+        <h3>cURL</h3>
+        <pre class="example-code"><code>curl http://localhost:8000/v1/prompt \
+  -H "X-API-Key: $ZYDRA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Jelaskan fotosintesis secara singkat."}'</code></pre>
+      </article>
+    </section>
+  </main>
+  <footer class="shell">
+    <span>© <span id="year"></span> Zydra API</span>
+    <span>Dikembangkan oleh <a href="https://fareldev.biz.id" target="_blank" rel="noopener noreferrer">Fareldev</a></span>
+  </footer>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.3/dist/sweetalert2.all.min.js"
+    integrity="sha384-BX77tysPwMmjY87hyuYr8cUvUQiHJMvAjLu9iWF4Ls6HQLzalVw0fm/Ez1VwzAv7"
+    crossorigin="anonymous"></script>
+  <script>
+    const endpointDefinitions = [
+      { id: "health", method: "GET", path: "/health", title: "Status layanan dan kesiapan model", auth: false, fields: [] },
+      { id: "status", method: "GET", path: "/status", title: "Detail status pemuatan model", auth: false, fields: [] },
+      { id: "ready", method: "GET", path: "/ready", title: "Periksa apakah model siap menerima request", auth: false, fields: [] },
+      { id: "models", method: "GET", path: "/v1/models", title: "Daftar model yang tersedia", auth: true, fields: [] },
+      { id: "prompt-get", method: "GET", path: "/v1/prompt", title: "Prompt melalui query string", auth: true, fields: [
+        { name: "apikey", label: "apikey (optional jika memakai header)", type: "password", optional: true, value: "", placeholder: "API key" },
+        { name: "prompt", label: "prompt", type: "textarea", required: true, value: "Siapa namamu dan siapa pembuatmu?", note: "Prompt dikirim sebagai parameter query. Untuk keamanan, gunakan header X-API-Key bila memungkinkan." },
+      ] },
+      { id: "prompt", method: "POST", path: "/v1/prompt", title: "Kirim prompt melalui JSON body", auth: true, fields: [
+        { name: "prompt", label: "prompt", type: "textarea", required: true, value: "Siapa namamu dan siapa pembuatmu?", note: "Teks yang akan dikirim ke model." },
+        { name: "model", label: "model", type: "text", value: "zydra" },
+        { name: "temperature", label: "temperature", type: "number", optional: true, value: "0.7", step: "0.1", min: "0", max: "2" },
+        { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "1024", step: "1", min: "1" },
+      ] },
+      { id: "chat", method: "POST", path: "/v1/chat/completions", title: "Chat completions kompatibel OpenAI", auth: true, fields: [
+        { name: "model", label: "model", type: "text", value: "zydra" },
+        { name: "messages", label: "messages (JSON)", type: "json", required: true, value: '[\n  { "role": "user", "content": "Siapa namamu dan siapa pembuatmu?" }\n]', note: "Array pesan dengan role system, user, atau assistant." },
+        { name: "temperature", label: "temperature", type: "number", optional: true, value: "0.7", step: "0.1", min: "0", max: "2" },
+        { name: "top_p", label: "top_p", type: "number", optional: true, value: "0.9", step: "0.1", min: "0.000001", max: "1" },
+        { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "1024", step: "1", min: "1" },
+        { name: "stream", label: "stream", type: "checkbox", value: false, note: "Response streaming dikirim sebagai Server-Sent Events." },
+        { name: "tools", label: "tools (JSON)", type: "json", optional: true, value: "", note: "Opsional: definisi tools dalam bentuk array JSON." },
+      ] },
+      { id: "keys-list", method: "GET", path: "/v1/api-keys", title: "Daftar metadata API key", auth: true, admin: true, fields: [] },
+      { id: "keys-create", method: "POST", path: "/v1/api-keys", title: "Buat API key baru; key acak ditampilkan satu kali", auth: true, admin: true, fields: [
+        { name: "name", label: "name", type: "text", required: true, value: "", placeholder: "Contoh: aplikasi-mobile", note: "Nama key saja. Server membuat secret acak secara otomatis." },
+      ] },
+      { id: "keys-delete", method: "DELETE", path: "/v1/api-keys/{key_id}", title: "Cabut API key berdasarkan ID", auth: true, admin: true, fields: [
+        { name: "key_id", label: "key_id (path)", type: "text", required: true, value: "", placeholder: "ID dari response daftar API key", note: "ID key yang ingin dihapus." },
+      ] },
+    ];
+
+    const appShell = document.getElementById("app-shell");
+    const endpointList = document.getElementById("endpoint-list");
+    let apiCredential = "";
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    async function requestCredential() {
+      if (typeof Swal === "undefined") {
+        window.alert("SweetAlert tidak dapat dimuat. Muat ulang halaman untuk mencoba kembali.");
+        return;
+      }
+
+      await Swal.fire({
+        title: "Autentikasi diperlukan",
+        text: "Masukkan nilai auth",
+        input: "password",
+        inputPlaceholder: "Password",
+        inputAttributes: { autocomplete: "current-password", autocapitalize: "off", spellcheck: "false" },
+        confirmButtonText: "Verifikasi dan masuk",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showLoaderOnConfirm: true,
+        preConfirm: async (value) => {
+          const credential = value?.trim();
+          if (!credential) {
+            Swal.showValidationMessage("AUTH wajib diisi.");
+            return false;
+          }
+          try {
+            const response = await fetch("/v1/api-keys", {
+              headers: { "X-API-Key": credential },
+            });
+            if (response.status === 401) {
+              Swal.showValidationMessage("AUTH salah. Akses ditolak.");
+              return false;
+            }
+            if (!response.ok) {
+              Swal.showValidationMessage(`Gagal memverifikasi AUTH (HTTP ${response.status}).`);
+              return false;
+            }
+            return credential;
+          } catch {
+            Swal.showValidationMessage("Server tidak dapat dijangkau. Periksa koneksi lalu coba lagi.");
+            return false;
+          }
+        },
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          apiCredential = result.value;
+          appShell.hidden = false;
+        }
+      });
+    }
+
+    async function createApiKeyFromButton() {
+      const nameResult = await Swal.fire({
+        title: "Buat API key",
+        text: "Masukkan nama untuk API key baru.",
+        input: "text",
+        inputLabel: "Nama API key",
+        inputPlaceholder: "Contoh: aplikasi-mobile",
+        inputAttributes: { maxlength: "80", autocapitalize: "off" },
+        inputValidator: (value) => !value?.trim() ? "Nama API key wajib diisi." : undefined,
+        confirmButtonText: "Generate key",
+        cancelButtonText: "Batal",
+        showCancelButton: true,
+      });
+      if (!nameResult.isConfirmed) return;
+
+      const button = document.getElementById("key-create-button");
+      button.disabled = true;
+      button.textContent = "Membuat...";
+      try {
+        const response = await fetch("/v1/api-keys", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-API-Key": apiCredential },
+          body: JSON.stringify({ name: nameResult.value.trim() }),
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail || `HTTP ${response.status}`);
+        }
+        const keyResult = await Swal.fire({
+          title: "API key berhasil dibuat",
+          text: "Salin dan simpan key ini sekarang. Setelah dialog ditutup, nilai penuh tidak bisa ditampilkan lagi.",
+          input: "text",
+          inputValue: payload.api_key,
+          inputAttributes: { readonly: "readonly", "aria-label": "API key baru" },
+          showDenyButton: true,
+          denyButtonText: "Salin key",
+          confirmButtonText: "Selesai",
+          allowOutsideClick: false,
+          didOpen: () => Swal.getInput().select(),
+        });
+        if (keyResult.isDenied) {
+          try {
+            await navigator.clipboard.writeText(payload.api_key);
+            await Swal.fire({ title: "Key tersalin", icon: "success", timer: 1200, showConfirmButton: false });
+          } catch {
+            await Swal.fire({ title: "Tidak dapat menyalin key", text: "Salin key dari kolom sebelumnya.", icon: "warning" });
+          }
+        }
+      } catch (error) {
+        await Swal.fire({
+          title: "Gagal membuat API key",
+          text: error.message,
+          icon: "error",
+          confirmButtonText: "Tutup",
+        });
+      } finally {
+        button.disabled = false;
+        button.textContent = "+ Buat API key";
+      }
+    }
+
+    function addField(grid, definition, endpointId) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `field${definition.type === "textarea" || definition.type === "json" ? " full" : ""}`;
+      const id = `${endpointId}-${definition.name.replaceAll("_", "-")}`;
+      const label = document.createElement("label");
+      label.htmlFor = id;
+      label.textContent = `${definition.label}${definition.optional ? " (optional)" : definition.required ? " *" : ""}`;
+      wrapper.append(label);
+
+      let input;
+      if (definition.type === "textarea" || definition.type === "json") {
+        input = document.createElement("textarea");
+        input.spellcheck = false;
+      } else {
+        input = document.createElement("input");
+        input.type = definition.type === "checkbox" ? "checkbox" : definition.type;
+      }
+      input.id = id;
+      input.name = definition.name;
+      if (definition.type === "checkbox") {
+        input.checked = Boolean(definition.value);
+      } else {
+        input.value = definition.value ?? "";
+      }
+      if (definition.required) input.required = true;
+      if (definition.placeholder) input.placeholder = definition.placeholder;
+      if (definition.step) input.step = definition.step;
+      if (definition.min) input.min = definition.min;
+      if (definition.max) input.max = definition.max;
+      wrapper.append(input);
+
+      if (definition.note) {
+        const note = document.createElement("small");
+        note.className = "field-note";
+        note.textContent = definition.note;
+        wrapper.append(note);
+      }
+      grid.append(wrapper);
+    }
+
+    function formatResponse(raw) {
+      try {
+        return JSON.stringify(JSON.parse(raw), null, 2);
+      } catch {
+        return raw || "(response kosong)";
+      }
+    }
+
+    function highlightJson(code, value) {
+      const escapeHtml = (text) => text.replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]);
+      const tokenPattern = /("(?:\\.|[^"\\])*"(?:\s*:)?|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b|\b(?:true|false|null)\b)/g;
+      let highlighted = "";
+      let previousIndex = 0;
+      for (const match of value.matchAll(tokenPattern)) {
+        const token = match[0];
+        const start = match.index;
+        const className = token.startsWith('"')
+          ? token.trimEnd().endsWith(":") ? "json-key" : "json-string"
+          : /^(?:true|false|null)$/.test(token) ? "json-boolean" : "json-number";
+        highlighted += escapeHtml(value.slice(previousIndex, start));
+        highlighted += `<span class="${className}">${escapeHtml(token)}</span>`;
+        previousIndex = start + token.length;
+      }
+      highlighted += escapeHtml(value.slice(previousIndex));
+      code.innerHTML = highlighted;
+    }
+
+    function highlightJavaScript(code) {
+      const source = code.textContent;
+      const tokens = /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:async|await|break|case|catch|class|const|continue|default|else|export|extends|false|finally|for|from|function|if|import|in|let|new|null|of|return|static|throw|true|try|undefined|var|while)\b|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*(?=\s*\()/g;
+      let output = "";
+      let previousIndex = 0;
+      for (const match of source.matchAll(tokens)) {
+        const token = match[0];
+        const start = match.index;
+        const className = token.startsWith("//") || token.startsWith("/*")
+          ? "code-token-comment"
+          : /^["'`]/.test(token)
+            ? "code-token-string"
+            : /^(?:async|await|break|case|catch|class|const|continue|default|else|export|extends|for|from|function|if|import|in|let|new|of|return|static|throw|try|var|while)$/.test(token)
+              ? "code-token-keyword"
+              : /^(?:false|null|true|undefined)$/.test(token)
+                ? "code-token-literal"
+                : /^\d/.test(token)
+                  ? "code-token-number"
+                  : "code-token-function";
+        output += escapeCodeHtml(source.slice(previousIndex, start));
+        output += `<span class="${className}">${escapeCodeHtml(token)}</span>`;
+        previousIndex = start + token.length;
+      }
+      output += escapeCodeHtml(source.slice(previousIndex));
+      code.innerHTML = output;
+    }
+
+    function escapeCodeHtml(value) {
+      return value.replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]);
+    }
+
+    async function copyCode(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const temporary = document.createElement("textarea");
+      temporary.value = text;
+      temporary.style.position = "fixed";
+      temporary.style.opacity = "0";
+      document.body.append(temporary);
+      temporary.select();
+      const copied = document.execCommand("copy");
+      temporary.remove();
+      if (!copied) throw new Error("Clipboard tidak tersedia.");
+    }
+
+    function setupCodeExamples() {
+      document.querySelectorAll(".example-code").forEach((pre) => {
+        const code = pre.querySelector("code");
+        if (!code) return;
+        const source = code.textContent;
+        if (pre.classList.contains("language-javascript")) highlightJavaScript(code);
+
+        const toolbar = document.createElement("div");
+        toolbar.className = "code-toolbar";
+        const language = document.createElement("span");
+        language.textContent = pre.classList.contains("language-javascript")
+          ? "JavaScript"
+          : pre.closest("#example-python") ? "Python" : "cURL";
+        const copy = document.createElement("button");
+        copy.className = "copy-example-button";
+        copy.type = "button";
+        copy.textContent = "Copy";
+        copy.addEventListener("click", async () => {
+          try {
+            await copyCode(source);
+            copy.textContent = "Copied";
+          } catch {
+            copy.textContent = "Copy gagal";
+          }
+          setTimeout(() => { copy.textContent = "Copy"; }, 1500);
+        });
+        toolbar.append(language, copy);
+        pre.before(toolbar);
+      });
+    }
+
+    function addResponse(container, response, statusText, ok, elapsed) {
+      container.replaceChildren();
+      const box = document.createElement("section");
+      box.className = "response";
+      const head = document.createElement("div");
+      head.className = "response-head";
+      const status = document.createElement("span");
+      status.className = "response-status";
+      status.dataset.ok = String(ok);
+      status.textContent = `${statusText} · ${elapsed} ms`;
+      const copy = document.createElement("button");
+      copy.className = "copy-button";
+      copy.type = "button";
+      copy.textContent = "Salin";
+      copy.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(response);
+        copy.textContent = "Tersalin";
+        setTimeout(() => { copy.textContent = "Salin"; }, 1200);
+      });
+      const output = document.createElement("pre");
+      const code = document.createElement("code");
+      highlightJson(code, response);
+      output.append(code);
+      head.append(status, copy);
+      box.append(head, output);
+      container.append(box);
+    }
+
+    function buildPayload(endpoint, form) {
+      const payload = {};
+      for (const field of endpoint.fields) {
+        if (field.name === "key_id") continue;
+        const input = form.elements.namedItem(field.name);
+        if (field.type === "checkbox") {
+          payload[field.name] = input.checked;
+          continue;
+        }
+        const value = input.value.trim();
+        if (!value) {
+          if (field.required) throw new Error(`${field.label} wajib diisi.`);
+          continue;
+        }
+        if (field.type === "json") {
+          try {
+            payload[field.name] = JSON.parse(value);
+          } catch {
+            throw new Error(`${field.label} harus berisi JSON yang valid.`);
+          }
+        } else if (field.type === "number") {
+          payload[field.name] = Number(value);
+        } else {
+          payload[field.name] = value;
+        }
+      }
+      return payload;
+    }
+
+    function createEndpoint(endpoint) {
+      const article = document.createElement("article");
+      article.className = "endpoint";
+      const top = document.createElement("div");
+      top.className = "endpoint-top";
+      const info = document.createElement("div");
+      info.className = "route-info";
+      const method = document.createElement("span");
+      method.className = `method ${endpoint.method.toLowerCase()}`;
+      method.textContent = endpoint.method;
+      const path = document.createElement("code");
+      path.textContent = endpoint.path;
+      const description = document.createElement("span");
+      description.className = "route-desc";
+      description.textContent = endpoint.title;
+      const auth = document.createElement("span");
+      auth.className = "auth-badge";
+      auth.textContent = endpoint.admin ? "AUTH master" : endpoint.auth ? "API key" : "No auth";
+      info.append(method, path, description, auth);
+
+      const tryButton = document.createElement("button");
+      tryButton.className = "try-button";
+      tryButton.type = "button";
+      tryButton.textContent = "Try it out";
+      const endpointActions = document.createElement("div");
+      endpointActions.className = "endpoint-actions";
+      endpointActions.append(tryButton);
+      top.append(info, endpointActions);
+
+      const area = document.createElement("div");
+      area.className = "try-area";
+      area.hidden = true;
+      const form = document.createElement("form");
+      form.noValidate = true;
+      const preview = document.createElement("p");
+      preview.className = "path-preview";
+      preview.textContent = `Request URL: ${window.location.origin}${endpoint.path}`;
+      const fields = document.createElement("div");
+      fields.className = "field-grid";
+      endpoint.fields.forEach((field) => addField(fields, field, endpoint.id));
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const execute = document.createElement("button");
+      execute.className = "execute-button";
+      execute.type = "submit";
+      execute.textContent = "Execute";
+      const cancel = document.createElement("button");
+      cancel.className = "cancel-button";
+      cancel.type = "button";
+      cancel.textContent = "Cancel";
+      actions.append(execute, cancel);
+      const responseContainer = document.createElement("div");
+      form.append(preview, fields, actions, responseContainer);
+      area.append(form);
+      article.append(top, area);
+      endpointList.append(article);
+
+      tryButton.addEventListener("click", () => {
+        area.hidden = false;
+      });
+      cancel.addEventListener("click", () => {
+        area.hidden = true;
+      });
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        let url = endpoint.path;
+        let payload;
+        try {
+          payload = buildPayload(endpoint, form);
+          if (endpoint.id === "keys-delete") {
+            url = `/v1/api-keys/${encodeURIComponent(form.elements.namedItem("key_id").value.trim())}`;
+          } else if (endpoint.id === "prompt-get") {
+            const query = new URLSearchParams(payload);
+            url = `${endpoint.path}?${query.toString()}`;
+          }
+        } catch (error) {
+          addResponse(responseContainer, JSON.stringify({ error: error.message }, null, 2), "Input tidak valid", false, 0);
+          return;
+        }
+        preview.textContent = `Request URL: ${window.location.origin}${url}`;
+        execute.disabled = true;
+        execute.textContent = "Loading...";
+        const headers = {};
+        const queryHasApiKey = endpoint.id === "prompt-get" && payload.apikey;
+        if (apiCredential && !queryHasApiKey) headers["X-API-Key"] = apiCredential;
+        const options = { method: endpoint.method, headers };
+        if (endpoint.method === "POST") {
+          headers["Content-Type"] = "application/json";
+          options.body = JSON.stringify(payload);
+        }
+        const started = performance.now();
+        try {
+          const response = await fetch(url, options);
+          const raw = await response.text();
+          addResponse(responseContainer, formatResponse(raw), `HTTP ${response.status} ${response.statusText}`, response.ok, Math.round(performance.now() - started));
+        } catch (error) {
+          addResponse(responseContainer, JSON.stringify({ error: error.message }, null, 2), "Request gagal", false, Math.round(performance.now() - started));
+        } finally {
+          execute.disabled = false;
+          execute.textContent = "Execute";
+        }
+      });
+    }
+
+    endpointDefinitions.forEach(createEndpoint);
+    setupCodeExamples();
+    document.getElementById("key-create-button").addEventListener("click", createApiKeyFromButton);
+    document.querySelectorAll(".example-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".example-tab").forEach((item) => item.setAttribute("aria-selected", String(item === tab)));
+        document.querySelectorAll(".example-panel").forEach((panel) => {
+          panel.hidden = panel.id !== tab.getAttribute("aria-controls");
+        });
+      });
+    });
+    requestCredential();
+  </script>
+</body>
+</html>

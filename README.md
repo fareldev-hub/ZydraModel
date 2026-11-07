@@ -2,13 +2,13 @@
 
 <p align="center">
   <a href="https://github.com/fareldev-hub/ZydraModel">
-    <img src="https://img.shields.io/badge/Zydra-AI%20Chat-6C5CE7?style=for-the-badge&logo=ollama&logoColor=white" alt="Zydra AI Chat">
+    <img src="https://img.shields.io/badge/Zydra-AI%20Chat-6C5CE7?style=for-the-badge&logo=huggingface&logoColor=white" alt="Zydra AI Chat">
   </a>
   <a href="https://www.docker.com/">
     <img src="https://img.shields.io/badge/Docker-Container-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   </a>
-  <a href="https://ollama.com/library/gemma3:1b">
-    <img src="https://img.shields.io/badge/Base-Gemma%203%201B-4285F4?style=for-the-badge" alt="Google Gemma 3 1B">
+  <a href="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct">
+    <img src="https://img.shields.io/badge/Base-Qwen2.5%200.5B%20Instruct-4285F4?style=for-the-badge" alt="Qwen2.5 0.5B Instruct">
   </a>
 </p>
 
@@ -19,8 +19,8 @@
   <a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
     <img src="https://img.shields.io/github/contributors/fareldev-hub/ZydraModel?style=flat-square" alt="Contributors">
   </a>
-  <a href="https://img.shields.io/badge/model%20size-~806%20MB-blue?style=flat-square">
-    <img src="https://img.shields.io/badge/model%20size-~806%20MB-blue?style=flat-square" alt="Ukuran model sekitar 806 MB">
+  <a href="https://img.shields.io/badge/model%20size-469%20MiB-blue?style=flat-square">
+    <img src="https://img.shields.io/badge/model%20size-469%20MiB-blue?style=flat-square" alt="Ukuran model sekitar 469 MiB">
   </a>
   <a href="https://github.com/fareldev-hub/ZydraModel/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/code%20license-MIT-green?style=flat-square" alt="Lisensi kode MIT">
@@ -48,29 +48,110 @@ Grafik khusus repository Zydra:
 
 ## Persiapan
 
-Pastikan Docker Engine tersedia. Buat file environment lokal:
+Pastikan Docker Engine tersedia dan letakkan model Qwen2.5-0.5B-Instruct GGUF di:
 
-```sh
-cp .env.example .env
+```text
+model/qwen2.5-0.5b-instruct-q4_k_m.gguf
 ```
 
-Edit `.env` dan ganti `AUTH` dengan password pilihan yang kuat. Jangan commit
-`.env`; file tersebut sudah diabaikan Git. `OLLAMA_URL` harus tetap
-`http://localhost:11434` karena Ollama berjalan di container yang sama.
+Folder `model/` diabaikan Git agar bobot model yang besar tidak ikut masuk ke
+repository. Qwen2.5-0.5B-Instruct adalah model instruction-tuned, mendukung
+template chat, dan checkpoint Hugging Face-nya dapat di-fine-tune dengan LoRA.
+Bobot GGUF Q4_K_M resminya berukuran 491,400,032 byte (sekitar 469 MiB).
+Model dan GGUF resminya tersedia di bawah Apache 2.0. Unduh model:
 
-Contoh `.env`:
+```sh
+python3 -m pip install -U huggingface_hub
+hf download Qwen/Qwen2.5-0.5B-Instruct-GGUF \
+  qwen2.5-0.5b-instruct-q4_k_m.gguf \
+  --local-dir model
+```
+
+File quantized ini sekitar 469 MiB. Buat atau edit `.env`, gunakan password
+master yang kuat, dan jangan commit file tersebut:
 
 ```dotenv
 AUTH=ganti-dengan-password-kuat
-OLLAMA_URL=http://localhost:11434
+MODEL_PATH=/app/model/qwen2.5-0.5b-instruct-q4_k_m.gguf
 API_KEYS_FILE=/data/database/api.json
 ```
 
-Jika `.env` sudah ada, edit file itu dan jangan menyalin contoh di atas.
+Model ini dijalankan dari GGUF menggunakan `llama.cpp` dan template chat model
+otomatis dari metadata GGUF; Ollama tidak diperlukan saat build maupun runtime.
+Ukuran file bobot bukan kebutuhan RAM total: runtime juga memakai memori untuk
+context/KV cache dan proses, sementara kualitas/kemampuan model 0.5B lebih
+terbatas daripada model 1.5B.
+
+## Identitas dan fine-tuning
+
+API tidak lagi menyisipkan identitas sebagai pesan system pada request model.
+Dataset LoRA hanya berisi pesan user/assistant, sehingga identitas Zydra
+dipelajari dalam bobot dan model dapat mempertahankannya saat dijalankan di luar
+API. `training/data.txt` menjadi metadata untuk jawaban identitas deterministik
+di API, bukan prompt model. Tanpa adapter hasil fine-tuning, model Instruct
+dasar tetap dapat memberi jawaban generik atau keliru; fine-tuning tidak
+menjamin semua keluaran selalu benar. Contoh dataset saat ini hanya 35 baris
+dan cocok untuk menguji alur, bukan untuk menjamin perilaku produksi.
+
+Metadata identitas dibaca dari `training/data.txt` oleh handler identitas API.
+Setelah mengubah kode API, rebuild image dan buat ulang container:
+
+```sh
+docker build -t zydra-text .
+docker rm -f zydra
+docker run -d \
+  --name zydra \
+  --restart unless-stopped \
+  -p 8000:8000 \
+  --env-file .env \
+  -v "$(pwd)/model:/app/model:ro" \
+  -v "$(pwd)/training/data.txt:/app/training/data.txt:ro" \
+  -v zydra-data:/data \
+  zydra-text
+```
+
+## Fine-tuning LoRA
+
+Contoh dataset percakapan disimpan di `training_data/identity_train.jsonl`; tambah
+contoh beragam dan berkualitas sebelum training. Dataset hanya memakai pesan
+user/assistant sehingga identitas dipelajari tanpa system prompt. Skrip melatih
+adapter LoRA pada jawaban assistant. Checkpoint dasar Instruct Qwen dapat
+diunduh tanpa akses gated:
+
+```sh
+python3 -m pip install -r requirements-training.txt
+hf download Qwen/Qwen2.5-0.5B-Instruct \
+  --local-dir model/qwen2.5-0.5b-instruct
+python3 scripts/train_identity_lora.py \
+  --base-model model/qwen2.5-0.5b-instruct \
+  --train-file training_data/identity_train.jsonl \
+  --epochs 6
+```
+
+Training memerlukan RAM/VRAM yang cukup; GPU CUDA disarankan dan training CPU
+bisa sangat lambat. Adapter LoRA dapat dijalankan bersama GGUF dasar tanpa
+menulis salinan model gabungan berukuran besar. Konversikan adapter dengan
+`llama.cpp`:
+
+```sh
+git clone --depth 1 https://github.com/ggml-org/llama.cpp
+python3 llama.cpp/convert_lora_to_gguf.py \
+  model/qwen2.5-0.5b-zydra-lora \
+  --base model/qwen2.5-0.5b-instruct \
+  --outfile model/qwen2.5-0.5b-zydra-lora.gguf \
+  --outtype f16
+```
+
+Atur `MODEL_PATH` ke GGUF dasar dan `MODEL_LORA_PATH` ke adapter GGUF pada
+`.env`, lalu recreate container. Bobot dasar Q4_K_M (~469 MiB) dan adapter
+LoRA tetap terpisah; adapter diterapkan saat runtime dan bukan system prompt.
+Skrip `merge_identity_lora.py` tetap tersedia bila diperlukan ekspor model
+gabungan mandiri, tetapi proses merge dan konversi memerlukan ruang disk lebih
+banyak.
 
 ## Build dan jalankan
 
-Build image:
+Build image aplikasi:
 
 ```sh
 docker build -t zydra-text .
@@ -80,25 +161,29 @@ Buat volume permanen untuk model dan konfigurasi, lalu jalankan container:
 
 ```sh
 docker volume create zydra-data
+# Jika container versi lama masih berjalan, hapus container-nya terlebih dahulu.
+docker rm -f zydra
 docker run -d \
   --name zydra \
   --restart unless-stopped \
   -p 8000:8000 \
   --env-file .env \
+  -v "$(pwd)/model:/app/model:ro" \
+  -v "$(pwd)/training/data.txt:/app/training/data.txt:ro" \
   -v zydra-data:/data \
   zydra-text
 ```
 
-Pantau setup pertama kali:
+Model harus sudah ada di folder `model/` sebelum container dijalankan. Pantau
+proses pemuatan:
 
 ```sh
 docker logs -f zydra
 ```
 
-Setup selesai saat log menampilkan `Setup selesai`. Proses ini mengunduh
-`gemma3:1b` lalu membuat model `zydra`. Unduhan model sekitar 806 MB; sediakan
-ruang disk tambahan untuk Ollama dan data aplikasi. Hentikan tampilan log dengan
-`Ctrl+C`; container tetap berjalan.
+Pemuatan selesai saat log menampilkan `Model Zydra lokal siap.`. File bobot
+model sekitar 469 MiB; bobot tetap berada di folder proyek dan tidak disalin ke
+image. Hentikan tampilan log dengan `Ctrl+C`; container tetap berjalan.
 
 Pastikan API dan model siap:
 
@@ -106,16 +191,34 @@ Pastikan API dan model siap:
 curl http://localhost:8000/health
 ```
 
-Lanjutkan setelah respons berisi `"model_ready":true`. Buka
-<http://localhost:8000/docs> untuk menguji GET/POST dan mengelola API key dengan
-password master `AUTH` dari `.env`.
-
-![Daftar route API Zydra](docs/api.png)
+Lanjutkan setelah respons berisi `"model_ready":true`. API Explorer tersedia di `http://localhost:8000/`. Setiap route ditampilkan
+sebagai item tersendiri. Klik **Try it out**, isi parameter atau body yang
+tersedia, lalu **Execute** untuk melihat status dan response route tersebut.
+Saat halaman dibuka, SweetAlert meminta nilai `AUTH` dari file `.env`. Masukkan
+nilainya di popup; server memverifikasinya sebelum menampilkan halaman. AUTH
+yang salah menolak akses. Credential hanya diminta sekali saat awal dan hanya
+disimpan di memori selama halaman terbuka; tidak ditanamkan ke HTML atau
+disimpan di browser. Tombol **Buat API key** meminta nama saja, kemudian server
+membuat key acak dan UI menampilkan nilai lengkapnya sekali dengan opsi salin.
+Response JSON memakai syntax highlighting; panel **Contoh penggunaan API**
+menyediakan JavaScript backend, JavaScript fetch, Python, dan cURL. Halaman
+dokumentasi `/docs` dan schema `/openapi.json` tetap dinonaktifkan.
 
 ## Uji balasan teks
 
-Gunakan route sederhana `POST /v1/prompt` untuk mengirim satu prompt dan menerima
-field `response` langsung:
+Selain POST dengan JSON body di bawah, endpoint prompt juga mendukung query:
+
+```sh
+curl --get http://localhost:8000/v1/prompt \
+  --data-urlencode "apikey=$ZYDRA_API_KEY" \
+  --data-urlencode "prompt=Jelaskan fotosintesis secara singkat."
+```
+
+Query string dapat tercatat di access log; penggunaan backend sebaiknya
+mengirim API key melalui header `X-API-Key`.
+
+Gunakan route `POST /v1/prompt` untuk mengirim satu prompt dan menerima field
+`response` langsung:
 
 ```sh
 set -a
@@ -128,25 +231,18 @@ curl http://localhost:8000/v1/prompt \
   -d '{"prompt":"Jelaskan fotosintesis secara singkat."}'
 ```
 
-Alias route ringkas juga tersedia dalam dua method:
+Route prompt menerima POST dengan API key di header:
 
 ```sh
-# GET sesuai format query yang diminta
-curl --get "http://localhost:8000/api/chat" \
-  --data-urlencode "api=$API_KEY" \
-  --data-urlencode "prompt=Jelaskan fotosintesis singkat."
-
-# POST; gunakan ini untuk key sensitif karena key dikirim di header
-curl "http://localhost:8000/api/chat" \
-  -X POST \
+curl http://localhost:8000/v1/prompt \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"prompt":"Jelaskan fotosintesis singkat."}'
 ```
 
-GET menerima `api` dan `prompt` sebagai query parameter, tetapi URL dapat masuk
-ke history browser, proxy, dan access log. POST melalui header lebih disarankan.
-Keduanya mengembalikan JSON berisi `model`, `response`, dan `creator`.
+Endpoint ini mengembalikan JSON berisi `model`, `response`, dan `creator`.
+Route chat lama `/api/chat` tidak disediakan. UI tester dilayani melalui GET `/`;
+request dari tester memanggil endpoint API di origin yang sama.
 
 API chat kompatibel dengan format OpenAI. Uji dari terminal:
 
@@ -166,14 +262,29 @@ header Bearer atau `X-API-Key`.
 
 ## Mengelola API keys
 
-Buka <http://localhost:8000/docs> dan masuk dengan password master `AUTH`. Isi
-nama key dan pilih **Buat API key**. Key baru berformat `zdy-...`;
-salin saat pertama kali muncul karena nilai penuh tidak ditampilkan lagi.
+Route prompt/chat dan daftar model memerlukan API key. Key dapat dikirim melalui
+header `X-API-Key` atau parameter query `apikey`; penggunaan header
+direkomendasikan agar key tidak tercatat di URL. Route status `/health`,
+`/status`, dan `/ready` tetap bisa diakses tanpa key. Route pengelolaan key
+memerlukan AUTH master.
+
+Kelola API key melalui endpoint dengan password master `AUTH`. Buat key:
+
+```sh
+curl http://localhost:8000/v1/api-keys \
+  -X POST \
+  -H "Authorization: ******" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"aplikasi-saya"}'
+```
+
+Key baru berformat `zdy-...`; simpan nilai penuh saat pertama kali diterima.
 
 Key terkelola dapat digunakan untuk endpoint API selain route pengelolaan key.
 Route `GET /v1/api-keys`, `POST /v1/api-keys`, dan
-`DELETE /v1/api-keys/{key_id}` hanya menerima password master `AUTH`. UI
-menampilkan prefix dan nama key; key dapat dicabut kapan saja.
+`DELETE /v1/api-keys/{key_id}` hanya menerima password master `AUTH`.
+Route-route ini mengembalikan JSON dan dapat dipakai untuk melihat metadata
+key atau mencabut key kapan saja.
 
 Hash SHA-256 dan metadata key disimpan di `database/api.json`. File lokal ini
 diabaikan Git. Di Docker, `API_KEYS_FILE=/data/database/api.json` menempatkannya
@@ -182,12 +293,10 @@ tidak disimpan dalam file.
 
 ## Lisensi
 
-Base model Google Gemma 3 1B (`gemma3:1b`) memakai Gemma Terms of Use, bukan
-Apache 2.0; ukuran unduh varian Ollama yang digunakan sekitar 806 MB.
-Penggunaan model harus mematuhi [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
-dan [Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy).
+Base model Qwen2.5-0.5B-Instruct dan varian GGUF resminya tersedia di bawah
+Apache License 2.0. Lihat [lisensi model Qwen](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/blob/main/LICENSE).
 Notice model tersedia di `MODEL_LICENSES/` dan disertakan dalam Docker image di
-`/root/MODEL_LICENSES`. Lisensi model berlaku terpisah dari lisensi MIT kode proyek.
+`/app/MODEL_LICENSES`. Lisensi model berlaku terpisah dari lisensi MIT kode proyek.
 
 ## Perintah Docker
 
@@ -198,13 +307,13 @@ docker start zydra
 docker rm -f zydra
 ```
 
-Menghapus container tidak menghapus model selama volume `zydra-data` tetap ada.
-Untuk menghapus seluruh data model secara permanen, hapus volume tersebut dengan
-`docker volume rm zydra-data`.
+Model berada di folder proyek `model/`, terpisah dari volume `zydra-data`.
+Menghapus volume `zydra-data` hanya menghapus konfigurasi dan API key; untuk
+menghapus bobot model, hapus file lokal
+`model/qwen2.5-0.5b-instruct-q4_k_m.gguf`.
 
-Dokumentasi route dan contoh integrasi, generator API key, serta uji prompt
-tersedia di <http://localhost:8000/docs>. Root service `/` juga mengarah langsung
-ke halaman dokumentasi tersebut.
+API tester dilayani di route root (`/`) dan menampilkan response endpoint yang
+dipilih. Endpoint dokumentasi `/docs` dan `/openapi.json` tetap dinonaktifkan.
 
 Notice base model tersedia di `MODEL_LICENSES/`.
 

@@ -1,0 +1,6 @@
+/.cache/
+*.gguf
+*.gguf.part
+qwen2.5-1.5b-instruct/
+qwen2.5-1.5b-zydra-lora/
+qwen2.5-1.5b-zydra-merged/
