@@ -294,9 +294,12 @@ tidak disimpan dalam file.
 ## Lisensi
 
 Base model Qwen2.5-0.5B-Instruct dan varian GGUF resminya tersedia di bawah
-Apache License 2.0. Lihat [lisensi model Qwen](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/blob/main/LICENSE).
-Notice model tersedia di `MODEL_LICENSES/` dan disertakan dalam Docker image di
-`/app/MODEL_LICENSES`. Lisensi model berlaku terpisah dari lisensi MIT kode proyek.
+Apache License 2.0. Salinan lengkap lisensi ada di
+[`MODEL_LICENSES/QWEN-APACHE-2.0.txt`](MODEL_LICENSES/QWEN-APACHE-2.0.txt);
+notice dan atribusi model juga ada di `MODEL_LICENSES/NOTICE.md`. Keduanya
+disertakan dalam Docker image di `/app/MODEL_LICENSES`. Lisensi model berlaku
+terpisah dari lisensi MIT kode proyek. Lihat pula
+[lisensi resmi Qwen](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/blob/main/LICENSE).
 
 ## Perintah Docker
 
