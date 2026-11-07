@@ -70,11 +70,6 @@ membutuhkan checkpoint dasar Qwen untuk bobot yang tidak diubah saat training;
 folder base tidak boleh dihapus selama adapter belum digabungkan. Folder
 `model/` diabaikan Git agar bobot model tidak masuk ke repository.
 
-```sh
-python3 -m pip install -U huggingface_hub
-hf download Qwen/Qwen2.5-0.5B-Instruct --local-dir model/zydra-base
-```
-
 Buat atau edit `.env`, gunakan password master yang kuat, dan jangan commit
 file tersebut:
 
@@ -97,24 +92,6 @@ jawaban identitas langsung dari file terpisah. Dataset training hanya digunakan
 saat melatih adapter dan perubahan dataset baru berpengaruh ke bobot setelah
 training ulang. Contoh dataset saat ini hanya 35 baris dan cocok untuk menguji
 alur, bukan untuk menjamin perilaku produksi.
-
-## Fine-tuning LoRA
-
-Contoh dataset percakapan disimpan di `training_data/identity_train.jsonl`; tambah
-contoh beragam dan berkualitas sebelum training. Dataset hanya memakai pesan
-user/assistant sehingga identitas dipelajari tanpa system prompt. Skrip melatih
-adapter LoRA pada jawaban assistant. Checkpoint dasar Instruct Qwen dapat
-diunduh tanpa akses gated:
-
-```sh
-python3 -m pip install -r requirements-training.txt
-hf download Qwen/Qwen2.5-0.5B-Instruct \
-  --local-dir model/zydra-base
-python3 scripts/train_identity_lora.py \
-  --base-model model/zydra-base \
-  --train-file training_data/identity_train.jsonl \
-  --epochs 6
-```
 
 Training memerlukan RAM/VRAM yang cukup; GPU CUDA disarankan dan training CPU
 bisa sangat lambat. Saat runtime, adapter diterapkan ke checkpoint dasar lokal.
