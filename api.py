@@ -159,11 +159,57 @@ class TransformersChatModel:
             term in latest_user_message for term in assistant_terms
         )
 
+    def _name_question(self, messages):
+        latest_user_message = next(
+            (
+                message["content"].strip().lower()
+                for message in reversed(messages)
+                if message["role"] == "user"
+            ),
+            "",
+        )
+        name_phrases = (
+            "namamu", "nama kamu", "nama anda", "siapa nama", "nama asisten",
+            "nama zydra", "what is your name", "what's your name",
+            "tell me your name", "your name", "who are you",
+        )
+        return any(phrase in latest_user_message for phrase in name_phrases)
+
     def _ensure_creator_answer(self, messages, content):
-        if not self._creator_question(messages):
-            return content
+        is_creator_question = self._creator_question(messages)
+        is_name_question = self._name_question(messages)
+        if is_creator_question and is_name_question:
+            question = next(
+                (
+                    message["content"].strip().lower()
+                    for message in reversed(messages)
+                    if message["role"] == "user"
+                ),
+                "",
+            )
+            if any(term in question for term in ("who", "what", "your", "creator", "developer", "created", "made")):
+                return "My name is Zydra. Zydra was created and developed by Farel Alfareza (Fareldev)."
+            return "Nama saya Zydra. Zydra dibuat dan dikembangkan oleh Farel Alfareza (Fareldev)."
+        if not is_creator_question:
+            if not is_name_question:
+                return content
+            question = next(
+                (
+                    message["content"].strip().lower()
+                    for message in reversed(messages)
+                    if message["role"] == "user"
+                ),
+                "",
+            )
+            if any(term in question for term in ("who", "what", "your", "tell me")):
+                return "My name is Zydra, a text AI assistant."
+            return "Nama saya Zydra, asisten AI teks."
         answer = content.lower()
         false_self_attributions = (
+            "nama saya adalah farel",
+            "nama saya farel",
+            "my name is farel",
+            "i am farel alfareza",
             "pembuat zydra adalah zydra",
             "zydra dibuat oleh zydra",
             "dibuat oleh zydra",
