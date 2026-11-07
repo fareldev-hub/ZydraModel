@@ -19,13 +19,21 @@
   <a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
     <img src="https://img.shields.io/github/contributors/fareldev-hub/ZydraModel?style=flat-square" alt="Contributors">
   </a>
-  <a href="https://img.shields.io/badge/model%20size-469%20MiB-blue?style=flat-square">
-    <img src="https://img.shields.io/badge/model%20size-469%20MiB-blue?style=flat-square" alt="Ukuran model sekitar 469 MiB">
+  <a href="https://img.shields.io/badge/total%20model%20size-1.43%20GiB-blue?style=flat-square">
+    <img src="https://img.shields.io/badge/total%20model%20size-1.43%20GiB-blue?style=flat-square" alt="Total ukuran file model sekitar 1.43 GiB">
   </a>
   <a href="https://github.com/fareldev-hub/ZydraModel/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/code%20license-MIT-green?style=flat-square" alt="Lisensi kode MIT">
   </a>
 </p>
+
+## Ukuran total proyek
+
+Per 7 November 2026, seluruh file proyek termasuk checkpoint dan bobot model
+lokal berukuran sekitar **1.43 GiB (1.53 GB)**. Folder `.git` menyimpan
+riwayat dan objek Git sekitar **5.82 GiB (6.25 GB)**, sehingga seluruh folder
+proyek termasuk riwayat Git berukuran sekitar **7.25 GiB (7.79 GB)**. Angka
+ini dapat berubah saat model, file proyek, atau riwayat Git berubah.
 
 ## Statistik dan kontribusi
 
