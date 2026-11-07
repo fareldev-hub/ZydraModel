@@ -3,7 +3,7 @@
   "alpha_pattern": {},
   "arrow_config": null,
   "auto_mapping": null,
-  "base_model_name_or_path": "model/qwen2.5-0.5b-instruct",
+  "base_model_name_or_path": "model/zydra-base",
   "bias": "none",
   "corda_config": null,
   "ensure_weight_tying": false,

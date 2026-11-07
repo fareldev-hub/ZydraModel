@@ -33,10 +33,15 @@
     label { display: block; margin: 0 0 5px; font-size: 12px; font-weight: 700; }
     input, textarea { width: 100%; padding: 9px 11px; border: 1px solid #b8c4d2; border-radius: 5px; outline: none; color: #202b3c; background: #fff; }
     input:focus, textarea:focus { border-color: #3b82b5; box-shadow: 0 0 0 2px #3b82b522; }
+    input[readonly] { color: #526176; background: #eef2f6; cursor: not-allowed; }
     textarea { min-height: 94px; resize: vertical; font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
     .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 11px; }
     .section-heading span { color: var(--muted); font-size: 12px; }
-    #endpoint-list { display: grid; gap: 12px; }
+    .method-tabs { display: flex; gap: 8px; margin: 0 0 14px; border-bottom: 1px solid var(--border); }
+    .method-tab { min-width: 88px; padding: 8px 12px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-weight: 750; }
+    .method-tab[aria-selected="true"] { border-bottom-color: var(--blue); color: var(--blue); }
+    .method-panel, .endpoint-list { display: grid; gap: 12px; }
+    .method-panel[hidden] { display: none; }
     .endpoint { overflow: hidden; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); }
     .endpoint-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 15px; }
     .route-info { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
@@ -48,10 +53,8 @@
     .route-desc { color: var(--muted); font-size: 12px; }
     .auth-badge { color: #758196; font-size: 11px; }
     .try-button, .execute-button, .cancel-button, .copy-button { min-height: 34px; padding: 6px 12px; border: 1px solid #1769aa; border-radius: 5px; color: #1769aa; background: white; font-weight: 700; white-space: nowrap; }
-    .key-create-button { min-height: 36px; padding: 7px 12px; border: 1px solid #1769aa; border-radius: 5px; color: white; background: #1769aa; font-weight: 700; white-space: nowrap; }
     .endpoint-actions { display: flex; align-items: center; gap: 7px; }
     .try-button:hover, .copy-button:hover { background: #edf6fc; }
-    .key-create-button:hover { background: #12598f; }
     .execute-button { color: white; background: #1769aa; }
     .execute-button:hover { background: #12598f; }
     .cancel-button { border-color: var(--border); color: #475569; }
@@ -122,9 +125,17 @@
 
     <div class="section-heading">
       <h2>Endpoints</h2>
-      <button class="key-create-button" id="key-create-button" type="button">+ Buat API key</button>
     </div>
-    <section id="endpoint-list" aria-label="Daftar API endpoints"></section>
+    <div class="method-tabs" role="tablist" aria-label="Metode HTTP">
+      <button class="method-tab" type="button" role="tab" id="get-tab" data-method="GET" aria-controls="get-panel" aria-selected="true">GET</button>
+      <button class="method-tab" type="button" role="tab" id="post-tab" data-method="POST" aria-controls="post-panel" aria-selected="false">POST</button>
+    </div>
+    <section class="method-panel" id="get-panel" role="tabpanel" aria-labelledby="get-tab">
+      <div class="endpoint-list" id="endpoint-list-get" aria-label="GET endpoints"></div>
+    </section>
+    <section class="method-panel" id="post-panel" role="tabpanel" aria-labelledby="post-tab" hidden>
+      <div class="endpoint-list" id="endpoint-list-post" aria-label="POST endpoints"></div>
+    </section>
 
     <section class="examples" aria-labelledby="examples-title">
       <h2 id="examples-title">Contoh penggunaan API</h2>
@@ -212,35 +223,32 @@ print(response.json()["response"])</code></pre>
       { id: "ready", method: "GET", path: "/ready", title: "Periksa apakah model siap menerima request", auth: false, fields: [] },
       { id: "models", method: "GET", path: "/v1/models", title: "Daftar model yang tersedia", auth: true, fields: [] },
       { id: "prompt-get", method: "GET", path: "/v1/prompt", title: "Prompt melalui query string", auth: true, fields: [
-        { name: "apikey", label: "apikey (optional jika memakai header)", type: "password", optional: true, value: "", placeholder: "API key" },
+        { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", note: "Wajib diisi; dikirim sebagai parameter apikey pada URL." },
         { name: "prompt", label: "prompt", type: "textarea", required: true, value: "Siapa namamu dan siapa pembuatmu?", note: "Prompt dikirim sebagai parameter query. Untuk keamanan, gunakan header X-API-Key bila memungkinkan." },
       ] },
-      { id: "prompt", method: "POST", path: "/v1/prompt", title: "Kirim prompt melalui JSON body", auth: true, fields: [
-        { name: "prompt", label: "prompt", type: "textarea", required: true, value: "Siapa namamu dan siapa pembuatmu?", note: "Teks yang akan dikirim ke model." },
-        { name: "model", label: "model", type: "text", value: "zydra" },
+      { id: "prompt", method: "POST", path: "/v1/prompt", title: "Respons AI dengan instruction", auth: true, fields: [
+        { name: "instruction", label: "instruction", type: "textarea", optional: true, value: "Jawab dengan jelas dan ringkas dalam bahasa Indonesia.", note: "Instruksi sistem opsional untuk mengatur gaya dan batasan jawaban." },
+        { name: "prompt", label: "prompt", type: "textarea", required: true, value: "Jelaskan fotosintesis secara singkat.", note: "Pertanyaan atau tugas untuk model." },
+        { name: "model", label: "model", type: "text", value: "zydra-lora", readonly: true, note: "Model layanan yang digunakan." },
         { name: "temperature", label: "temperature", type: "number", optional: true, value: "0.7", step: "0.1", min: "0", max: "2" },
         { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "1024", step: "1", min: "1" },
       ] },
       { id: "chat", method: "POST", path: "/v1/chat/completions", title: "Chat completions kompatibel OpenAI", auth: true, fields: [
-        { name: "model", label: "model", type: "text", value: "zydra" },
+        { name: "model", label: "model", type: "text", value: "zydra-lora", readonly: true, note: "Model layanan yang digunakan." },
         { name: "messages", label: "messages (JSON)", type: "json", required: true, value: '[\n  { "role": "user", "content": "Siapa namamu dan siapa pembuatmu?" }\n]', note: "Array pesan dengan role system, user, atau assistant." },
         { name: "temperature", label: "temperature", type: "number", optional: true, value: "0.7", step: "0.1", min: "0", max: "2" },
-        { name: "top_p", label: "top_p", type: "number", optional: true, value: "0.9", step: "0.1", min: "0.000001", max: "1" },
+        { name: "top_p", label: "top_p", type: "number", optional: true, value: "0.9", step: "any", min: "0.000001", max: "1" },
         { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "1024", step: "1", min: "1" },
         { name: "stream", label: "stream", type: "checkbox", value: false, note: "Response streaming dikirim sebagai Server-Sent Events." },
         { name: "tools", label: "tools (JSON)", type: "json", optional: true, value: "", note: "Opsional: definisi tools dalam bentuk array JSON." },
       ] },
-      { id: "keys-list", method: "GET", path: "/v1/api-keys", title: "Daftar metadata API key", auth: true, admin: true, fields: [] },
-      { id: "keys-create", method: "POST", path: "/v1/api-keys", title: "Buat API key baru; key acak ditampilkan satu kali", auth: true, admin: true, fields: [
-        { name: "name", label: "name", type: "text", required: true, value: "", placeholder: "Contoh: aplikasi-mobile", note: "Nama key saja. Server membuat secret acak secara otomatis." },
-      ] },
-      { id: "keys-delete", method: "DELETE", path: "/v1/api-keys/{key_id}", title: "Cabut API key berdasarkan ID", auth: true, admin: true, fields: [
-        { name: "key_id", label: "key_id (path)", type: "text", required: true, value: "", placeholder: "ID dari response daftar API key", note: "ID key yang ingin dihapus." },
-      ] },
     ];
 
     const appShell = document.getElementById("app-shell");
-    const endpointList = document.getElementById("endpoint-list");
+    const endpointLists = {
+      GET: document.getElementById("endpoint-list-get"),
+      POST: document.getElementById("endpoint-list-post"),
+    };
     let apiCredential = "";
     document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -292,67 +300,6 @@ print(response.json()["response"])</code></pre>
       });
     }
 
-    async function createApiKeyFromButton() {
-      const nameResult = await Swal.fire({
-        title: "Buat API key",
-        text: "Masukkan nama untuk API key baru.",
-        input: "text",
-        inputLabel: "Nama API key",
-        inputPlaceholder: "Contoh: aplikasi-mobile",
-        inputAttributes: { maxlength: "80", autocapitalize: "off" },
-        inputValidator: (value) => !value?.trim() ? "Nama API key wajib diisi." : undefined,
-        confirmButtonText: "Generate key",
-        cancelButtonText: "Batal",
-        showCancelButton: true,
-      });
-      if (!nameResult.isConfirmed) return;
-
-      const button = document.getElementById("key-create-button");
-      button.disabled = true;
-      button.textContent = "Membuat...";
-      try {
-        const response = await fetch("/v1/api-keys", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-API-Key": apiCredential },
-          body: JSON.stringify({ name: nameResult.value.trim() }),
-        });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.detail || `HTTP ${response.status}`);
-        }
-        const keyResult = await Swal.fire({
-          title: "API key berhasil dibuat",
-          text: "Salin dan simpan key ini sekarang. Setelah dialog ditutup, nilai penuh tidak bisa ditampilkan lagi.",
-          input: "text",
-          inputValue: payload.api_key,
-          inputAttributes: { readonly: "readonly", "aria-label": "API key baru" },
-          showDenyButton: true,
-          denyButtonText: "Salin key",
-          confirmButtonText: "Selesai",
-          allowOutsideClick: false,
-          didOpen: () => Swal.getInput().select(),
-        });
-        if (keyResult.isDenied) {
-          try {
-            await navigator.clipboard.writeText(payload.api_key);
-            await Swal.fire({ title: "Key tersalin", icon: "success", timer: 1200, showConfirmButton: false });
-          } catch {
-            await Swal.fire({ title: "Tidak dapat menyalin key", text: "Salin key dari kolom sebelumnya.", icon: "warning" });
-          }
-        }
-      } catch (error) {
-        await Swal.fire({
-          title: "Gagal membuat API key",
-          text: error.message,
-          icon: "error",
-          confirmButtonText: "Tutup",
-        });
-      } finally {
-        button.disabled = false;
-        button.textContent = "+ Buat API key";
-      }
-    }
-
     function addField(grid, definition, endpointId) {
       const wrapper = document.createElement("div");
       wrapper.className = `field${definition.type === "textarea" || definition.type === "json" ? " full" : ""}`;
@@ -372,6 +319,7 @@ print(response.json()["response"])</code></pre>
       }
       input.id = id;
       input.name = definition.name;
+      if (definition.readonly) input.readOnly = true;
       if (definition.type === "checkbox") {
         input.checked = Boolean(definition.value);
       } else {
@@ -541,7 +489,6 @@ print(response.json()["response"])</code></pre>
     function buildPayload(endpoint, form) {
       const payload = {};
       for (const field of endpoint.fields) {
-        if (field.name === "key_id") continue;
         const input = form.elements.namedItem(field.name);
         if (field.type === "checkbox") {
           payload[field.name] = input.checked;
@@ -622,7 +569,7 @@ print(response.json()["response"])</code></pre>
       form.append(preview, fields, actions, responseContainer);
       area.append(form);
       article.append(top, area);
-      endpointList.append(article);
+      endpointLists[endpoint.method].append(article);
 
       tryButton.addEventListener("click", () => {
         area.hidden = false;
@@ -637,9 +584,7 @@ print(response.json()["response"])</code></pre>
         let payload;
         try {
           payload = buildPayload(endpoint, form);
-          if (endpoint.id === "keys-delete") {
-            url = `/v1/api-keys/${encodeURIComponent(form.elements.namedItem("key_id").value.trim())}`;
-          } else if (endpoint.id === "prompt-get") {
+          if (endpoint.id === "prompt-get") {
             const query = new URLSearchParams(payload);
             url = `${endpoint.path}?${query.toString()}`;
           }
@@ -674,7 +619,18 @@ print(response.json()["response"])</code></pre>
 
     endpointDefinitions.forEach(createEndpoint);
     setupCodeExamples();
-    document.getElementById("key-create-button").addEventListener("click", createApiKeyFromButton);
+    document.querySelectorAll(".method-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".method-tab").forEach((item) => {
+          const selected = item === tab;
+          item.setAttribute("aria-selected", String(selected));
+          item.tabIndex = selected ? 0 : -1;
+        });
+        document.querySelectorAll(".method-panel").forEach((panel) => {
+          panel.hidden = panel.id !== tab.getAttribute("aria-controls");
+        });
+      });
+    });
     document.querySelectorAll(".example-tab").forEach((tab) => {
       tab.addEventListener("click", () => {
         document.querySelectorAll(".example-tab").forEach((item) => item.setAttribute("aria-selected", String(item === tab)));

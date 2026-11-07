@@ -1,7 +1,6 @@
 import hashlib
 import json
 import os
-import re
 import secrets
 import threading
 import uuid
@@ -11,8 +10,10 @@ from typing import Any, Dict, Iterator, List, Optional
 
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from llama_cpp import Llama
+import torch
+from peft import PeftModel
 from pydantic import BaseModel, Field
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 app = FastAPI(
     title="Zydra API",
@@ -22,71 +23,23 @@ app = FastAPI(
     openapi_url=None,
 )
 
-MODEL_PATH = Path(os.getenv("MODEL_PATH", "/app/model/qwen2.5-0.5b-instruct-q4_k_m.gguf"))
-MODEL_LORA_PATH = os.getenv("MODEL_LORA_PATH")
+MODEL_PATH = Path(os.getenv("MODEL_PATH", "/app/model/zydra-base"))
+MODEL_LORA_PATH = Path(
+    os.getenv("MODEL_LORA_PATH", "/app/model/zydra-lora")
+)
 MODEL_CONTEXT_SIZE = int(os.getenv("MODEL_CONTEXT_SIZE", "8192"))
 MODEL_THREADS = max(1, int(os.getenv("MODEL_THREADS", str(os.cpu_count() or 1))))
 AUTH_FILE = Path(os.getenv("AUTH_FILE", "/data/auth"))
-IDENTITY_INSTRUCTIONS_FILE = Path(
-    os.getenv(
-        "IDENTITY_INSTRUCTIONS_FILE",
-        str(Path(__file__).parent / "training" / "data.txt"),
-    )
-)
 API_KEYS_FILE = Path(os.getenv("API_KEYS_FILE", str(Path(__file__).parent / "database" / "api.json")))
 API_KEYS_LOCK = threading.RLock()
 MODEL_LOCK = threading.Lock()
-LOCAL_MODEL: Optional[Llama] = None
+LOCAL_MODEL: Optional["TransformersChatModel"] = None
 MODEL_STATUS: Dict[str, Any] = {
     "stage": "starting",
     "message": "Model lokal belum dimuat.",
     "model_ready": False,
 }
 CREATOR = "farel alfareza"
-
-
-def load_identity_instructions() -> str:
-    try:
-        instructions = IDENTITY_INSTRUCTIONS_FILE.read_text(encoding="utf-8").strip()
-    except OSError as exc:
-        raise RuntimeError(
-            f"Cannot read identity instructions from {IDENTITY_INSTRUCTIONS_FILE}: {exc}"
-        ) from exc
-    if not instructions:
-        raise RuntimeError(f"Identity instructions are empty in {IDENTITY_INSTRUCTIONS_FILE}")
-    return instructions
-
-
-def load_identity_profile(instructions: str) -> Dict[str, str]:
-    profile: Dict[str, str] = {}
-    for line in instructions.splitlines():
-        key, separator, value = line.partition(":")
-        if separator:
-            normalized_key = key.strip().lower()
-            if normalized_key in {
-                "nama asisten",
-                "jenis asisten",
-                "pembuat",
-                "alias pembuat",
-                "situs pembuat",
-                "model dasar",
-            }:
-                profile[normalized_key] = value.strip()
-
-    required_keys = {
-        "nama asisten",
-        "jenis asisten",
-        "pembuat",
-        "alias pembuat",
-        "situs pembuat",
-    }
-    missing_keys = required_keys - profile.keys()
-    if missing_keys:
-        raise RuntimeError(
-            f"Missing identity fields in {IDENTITY_INSTRUCTIONS_FILE}: "
-            f"{', '.join(sorted(missing_keys))}"
-        )
-    return profile
 
 
 @app.middleware("http")
@@ -150,23 +103,144 @@ def load_or_create_auth() -> str:
 AUTH = load_or_create_auth()
 
 
+class TransformersChatModel:
+    def __init__(self, tokenizer, model):
+        self.tokenizer = tokenizer
+        self.model = model
+
+    def _generate(self, messages, tools, options):
+        input_ids = self.tokenizer.apply_chat_template(
+            messages,
+            tools=tools or None,
+            tokenize=True,
+            add_generation_prompt=True,
+            return_tensors="pt",
+        ).to(self.model.device)
+        attention_mask = torch.ones_like(input_ids)
+        max_new_tokens = min(
+            options["max_tokens"], max(1, MODEL_CONTEXT_SIZE - input_ids.shape[-1])
+        )
+        generation_options = {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "max_new_tokens": max_new_tokens,
+            "do_sample": options["temperature"] > 0,
+            "top_p": options["top_p"],
+            "top_k": options["top_k"],
+            "repetition_penalty": options["repeat_penalty"],
+            "pad_token_id": self.tokenizer.eos_token_id,
+        }
+        if options["temperature"] > 0:
+            generation_options["temperature"] = options["temperature"]
+        with torch.inference_mode():
+            output_ids = self.model.generate(**generation_options)
+        return self.tokenizer.decode(
+            output_ids[0, input_ids.shape[-1] :], skip_special_tokens=True
+        )
+
+    def _creator_question(self, messages):
+        latest_user_message = next(
+            (
+                message["content"].strip().lower()
+                for message in reversed(messages)
+                if message["role"] == "user"
+            ),
+            "",
+        )
+        creator_terms = (
+            "pembuat", "pengembang", "pencipta", "dibuat", "diciptakan",
+            "dikembangkan", "creator", "developer", "created", "made",
+        )
+        assistant_terms = (
+            "zydra", "kamu", "anda", "you", "your", "yourself", "pembuatnya",
+            "pembuatmu", "pembuatku", "pengembangmu", "penciptamu",
+        )
+        return any(term in latest_user_message for term in creator_terms) and any(
+            term in latest_user_message for term in assistant_terms
+        )
+
+    def _ensure_creator_answer(self, messages, content):
+        if not self._creator_question(messages):
+            return content
+        answer = content.lower()
+        false_self_attributions = (
+            "pembuat zydra adalah zydra",
+            "zydra dibuat oleh zydra",
+            "dibuat oleh zydra",
+            "dikembangkan oleh zydra",
+            "creator of zydra is zydra",
+            "zydra was created by zydra",
+            "created by zydra",
+            "made by zydra",
+        )
+        if "farel alfareza" in answer and not any(
+            claim in answer for claim in false_self_attributions
+        ):
+            return content
+
+        question = next(
+            (
+                message["content"].strip().lower()
+                for message in reversed(messages)
+                if message["role"] == "user"
+            ),
+            "",
+        )
+        if any(term in question for term in ("who", "your", "creator", "developer", "created", "made")):
+            return "Zydra was created and developed by Farel Alfareza, also known as Fareldev."
+        return "Zydra dibuat dan dikembangkan oleh Farel Alfareza, yang dikenal sebagai Fareldev."
+
+    def create_chat_completion(self, messages, stream, tools, **options):
+        def response_stream():
+            content = self._ensure_creator_answer(
+                messages, self._generate(messages, tools, options)
+            )
+            chunk_base = {
+                "id": f"chatcmpl-{uuid.uuid4().hex}",
+                "object": "chat.completion.chunk",
+                "created": int(datetime.now(timezone.utc).timestamp()),
+            }
+            yield {**chunk_base, "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}]}
+            if content:
+                yield {**chunk_base, "choices": [{"index": 0, "delta": {"content": content}, "finish_reason": None}]}
+            yield {**chunk_base, "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]}
+
+        if stream:
+            return response_stream()
+        content = self._ensure_creator_answer(
+            messages, self._generate(messages, tools, options)
+        )
+        return {
+            "id": f"chatcmpl-{uuid.uuid4().hex}",
+            "object": "chat.completion",
+            "created": int(datetime.now(timezone.utc).timestamp()),
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": content},
+                    "finish_reason": "stop",
+                }
+            ]
+        }
+
+
 @app.on_event("startup")
 def load_local_model() -> None:
     global LOCAL_MODEL, MODEL_STATUS
 
-    if not MODEL_PATH.is_file():
+    if not MODEL_PATH.is_dir():
         MODEL_STATUS = {
             "stage": "model_missing",
-            "message": f"File model GGUF tidak ditemukan: {MODEL_PATH}",
+            "message": f"Folder model dasar tidak ditemukan: {MODEL_PATH}",
             "model_ready": False,
         }
         print(MODEL_STATUS["message"], flush=True)
         return
 
-    if MODEL_LORA_PATH and not Path(MODEL_LORA_PATH).is_file():
+    if not MODEL_LORA_PATH.is_dir():
         MODEL_STATUS = {
             "stage": "lora_missing",
-            "message": f"File adapter LoRA GGUF tidak ditemukan: {MODEL_LORA_PATH}",
+            "message": f"Folder adapter LoRA Zydra tidak ditemukan: {MODEL_LORA_PATH}",
             "model_ready": False,
         }
         print(MODEL_STATUS["message"], flush=True)
@@ -174,29 +248,34 @@ def load_local_model() -> None:
 
     MODEL_STATUS = {
         "stage": "loading",
-        "message": f"Memuat model lokal dari {MODEL_PATH}."
-        + (f" Adapter LoRA: {MODEL_LORA_PATH}." if MODEL_LORA_PATH else ""),
+        "message": f"Memuat model Zydra LoRA dari {MODEL_LORA_PATH}.",
         "model_ready": False,
     }
     try:
-        LOCAL_MODEL = Llama(
-            model_path=str(MODEL_PATH),
-            lora_path=MODEL_LORA_PATH,
-            n_ctx=MODEL_CONTEXT_SIZE,
-            n_threads=MODEL_THREADS,
-            verbose=False,
+        torch.set_num_threads(MODEL_THREADS)
+        tokenizer = AutoTokenizer.from_pretrained(str(MODEL_LORA_PATH))
+        base_model = AutoModelForCausalLM.from_pretrained(
+            str(MODEL_PATH),
+            torch_dtype="auto",
+            low_cpu_mem_usage=True,
         )
-    except (OSError, RuntimeError, ValueError) as exc:
+        model = PeftModel.from_pretrained(base_model, str(MODEL_LORA_PATH))
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model.to(device)
+        model.eval()
+        LOCAL_MODEL = TransformersChatModel(tokenizer, model)
+    except Exception as exc:
         MODEL_STATUS = {
             "stage": "failed",
-            "message": f"Gagal memuat model GGUF dari {MODEL_PATH}: {exc}",
+            "message": f"Gagal memuat model Zydra LoRA: {exc}",
             "model_ready": False,
         }
-        raise RuntimeError(MODEL_STATUS["message"]) from exc
+        print(MODEL_STATUS["message"], flush=True)
+        return
 
     MODEL_STATUS = {
         "stage": "ready",
-        "message": "Model Zydra lokal siap.",
+        "message": "Model Zydra LoRA siap.",
         "model_ready": True,
     }
     print(MODEL_STATUS["message"], flush=True)
@@ -208,7 +287,7 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    model: str = "zydra"
+    model: str = "zydra-lora"
     messages: List[Message] = Field(..., min_length=1)
     stream: bool = False
     tools: Optional[List[Dict[str, Any]]] = None
@@ -219,7 +298,8 @@ class ChatRequest(BaseModel):
 
 class PromptRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=32000)
-    model: str = "zydra"
+    instruction: Optional[str] = Field(None, max_length=8000)
+    model: str = "zydra-lora"
     temperature: Optional[float] = Field(None, ge=0, le=2)
     max_tokens: Optional[int] = Field(None, gt=0)
 
@@ -309,107 +389,30 @@ def require_api_key(
 
 
 def to_model_messages(messages: List[Message]) -> List[Dict[str, Any]]:
-    return [
+    model_messages = [
         {"role": message.role, "content": message.content} for message in messages
     ]
-
-
-def identity_response(
-    messages: List[Message], identity_profile: Dict[str, str]
-) -> Optional[str]:
-    latest_user_message = next(
-        (message.content.strip().lower() for message in reversed(messages) if message.role == "user"),
-        "",
+    identity_rule = (
+        "Jangan menyebutkan pembuat, pengembang, alias, atau situs pembuat Zydra "
+        "kecuali pengguna secara langsung menanyakannya. Jika pengguna hanya "
+        "menanyakan nama, identitas, atau model, jawab sebagai Zydra tanpa "
+        "menyebutkan pembuat. Jika ditanya siapa pembuat atau pengembang Zydra, "
+        "jawab Farel Alfareza (Fareldev). Jangan pernah menyatakan bahwa Zydra "
+        "membuat atau mengembangkan dirinya sendiri."
     )
-    if not latest_user_message:
-        return None
-
-    asks_about_creator = bool(
-        re.search(r"\b(siapa|who)\b", latest_user_message)
-        and re.search(
-            r"\b(pembuat(?:ku|mu)?|pengembang(?:ku|mu)?|membuat|bikin|menciptakan|"
-            r"creator|developer|made|created|developed)\b",
-            latest_user_message,
-        )
-        and re.search(
-            r"\b(kamu|anda|you|your|zydra)\b|"
-            r"\b(pembuatku|pembuatmu|pengembangku|pengembangmu)\b",
-            latest_user_message,
-        )
-    )
-    if asks_about_creator:
-        return (
-            f"Saya {identity_profile['nama asisten']}, "
-            f"{identity_profile['jenis asisten']} yang dibuat dan dikembangkan "
-            f"oleh {identity_profile['pembuat']} ("
-            f"{identity_profile['alias pembuat']}). Situs pembuat: "
-            f"{identity_profile['situs pembuat']}."
-        )
-
-    asks_about_other_model = bool(
-        re.search(
-            r"\b(apakah|apa)\b.*\b(kamu|anda)\b.*\b(qwen|alibaba|gemini|google|deepmind)\b",
-            latest_user_message,
-        )
-        or re.search(
-            r"\b(are you|r u)\b.*\b(qwen|alibaba|gemini|google|deepmind)\b",
-            latest_user_message,
-        )
-    )
-    if asks_about_other_model:
-        return (
-            f"Saya {identity_profile['nama asisten']}, "
-            f"{identity_profile['jenis asisten']} yang dibuat oleh "
-            f"{identity_profile['pembuat']} "
-            f"({identity_profile['alias pembuat']})."
-        )
-
-    asks_about_identity = bool(
-        re.search(r"\b(siapa|who)\b.*\b(kamu|anda|namamu|you|your name)\b", latest_user_message)
-        or re.search(
-            r"\b(nama|name)\b.*\b(kamu|anda|mu|namamu|you|zydra)\b",
-            latest_user_message,
-        )
-        or re.search(r"\b(apa namamu|what is your name|what's your name)\b", latest_user_message)
-        or re.search(
-            r"\b(kamu(?: ini)? siapa|siapa kamu|siapa anda|anda(?: ini)? siapa|"
-            r"who are you|what are you|introduce yourself|tell me about yourself|"
-            r"perkenalkan diri(?:mu)?|what model are you|what model|model apa|"
-            r"model apakah|siapa zydra|what is zydra|nama ai ini|nama model ini)\b",
-            latest_user_message,
-        )
-    )
-    if asks_about_identity:
-        return (
-            f"Saya {identity_profile['nama asisten']}, "
-            f"{identity_profile['jenis asisten']} yang dibuat oleh "
-            f"{identity_profile['pembuat']} "
-            f"({identity_profile['alias pembuat']})."
-        )
-    return None
+    system_indices = [
+        index for index, message in enumerate(model_messages) if message["role"] == "system"
+    ]
+    if system_indices:
+        last_system = model_messages[system_indices[-1]]
+        last_system["content"] = f"{last_system['content']}\n\n{identity_rule}"
+    else:
+        model_messages.insert(0, {"role": "system", "content": identity_rule})
+    return model_messages
 
 
-def identity_stream(
-    content: str, model: str, completion_id: str
-) -> Iterator[str]:
-    created = int(datetime.now(timezone.utc).timestamp())
-    base = {
-        "id": completion_id,
-        "object": "chat.completion.chunk",
-        "created": created,
-        "model": model,
-    }
-    for choice in (
-        {"index": 0, "delta": {"role": "assistant"}, "finish_reason": None},
-        {"index": 0, "delta": {"content": content}, "finish_reason": None},
-        {"index": 0, "delta": {}, "finish_reason": "stop"},
-    ):
-        yield f"data: {json.dumps({**base, 'choices': [choice]}, ensure_ascii=False)}\n\n"
-    yield "data: [DONE]\n\n"
-
-
-def require_available_model(model: str) -> Llama:
-    if model not in {"zydra", "zydra:latest"}:
+def require_available_model(model: str) -> TransformersChatModel:
+    if model not in {"zydra-lora", "zydra-lora:latest", "zydra", "zydra:latest"}:
         raise HTTPException(status_code=404, detail=f"Model '{model}' tidak tersedia")
     if LOCAL_MODEL is None:
         raise HTTPException(status_code=503, detail=MODEL_STATUS["message"])
@@ -421,7 +424,7 @@ def read_model_status() -> Dict[str, Any]:
 
 
 def stream_completion(
-    local_model: Llama,
+    local_model: TransformersChatModel,
     messages: List[Dict[str, Any]],
     model: str,
     completion_id: str,
@@ -462,34 +465,6 @@ def chat(
     query_api_key: Optional[str] = Query(None, alias="apikey"),
 ):
     require_api_key(authorization, x_api_key, query_api_key)
-    identity_instructions = load_identity_instructions()
-    identity_profile = load_identity_profile(identity_instructions)
-    direct_identity_response = identity_response(req.messages, identity_profile)
-    if direct_identity_response is not None:
-        if req.stream:
-            return StreamingResponse(
-                identity_stream(
-                    direct_identity_response,
-                    req.model,
-                    f"chatcmpl-{uuid.uuid4().hex}",
-                ),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-            )
-        return {
-            "id": f"chatcmpl-{uuid.uuid4().hex}",
-            "object": "chat.completion",
-            "created": int(datetime.now(timezone.utc).timestamp()),
-            "model": req.model,
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {"role": "assistant", "content": direct_identity_response},
-                    "finish_reason": "stop",
-                }
-            ],
-        }
-
     local_model = require_available_model(req.model)
     messages = to_model_messages(req.messages)
     options: Dict[str, Any] = {
@@ -540,10 +515,10 @@ def models(
     query_api_key: Optional[str] = Query(None, alias="apikey"),
 ):
     require_api_key(authorization, x_api_key, query_api_key)
-    require_available_model("zydra")
+    require_available_model("zydra-lora")
     return {
         "object": "list",
-        "data": [{"id": "zydra", "object": "model", "owned_by": CREATOR}],
+        "data": [{"id": "zydra-lora", "object": "model", "owned_by": CREATOR}],
     }
 
 
@@ -583,10 +558,15 @@ def generate_prompt_response(
     text = request.prompt.strip()
     if not text:
         raise HTTPException(status_code=422, detail="Prompt tidak boleh kosong")
+    messages = []
+    instruction = (request.instruction or "").strip()
+    if instruction:
+        messages.append(Message(role="system", content=instruction))
+    messages.append(Message(role="user", content=text))
     result = chat(
         ChatRequest(
             model=request.model,
-            messages=[Message(role="user", content=text)],
+            messages=messages,
             temperature=request.temperature,
             max_tokens=request.max_tokens,
         ),
@@ -674,7 +654,7 @@ def health():
     setup_status = read_model_status()
     return {
         "status": "ok",
-        "model": "zydra",
+        "model": "zydra-lora",
         "model_ready": setup_status["model_ready"],
         "setup_stage": setup_status["stage"],
         "setup_message": setup_status["message"],

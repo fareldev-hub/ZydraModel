@@ -13,10 +13,10 @@ def main() -> None:
     )
     parser.add_argument("--base-model", default="Qwen/Qwen2.5-0.5B-Instruct")
     parser.add_argument(
-        "--adapter", type=Path, default=Path("model/qwen2.5-0.5b-zydra-lora")
+        "--adapter", type=Path, default=Path("model/zydra-lora")
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=Path("model/qwen2.5-0.5b-zydra-merged")
+        "--output-dir", type=Path, default=Path("model/zydra-merged")
     )
     args = parser.parse_args()
 

@@ -1,9 +1,9 @@
 ---
-base_model: model/qwen2.5-0.5b-instruct
+base_model: model/zydra-base
 library_name: peft
 pipeline_tag: text-generation
 tags:
-- base_model:adapter:model/qwen2.5-0.5b-instruct
+- base_model:adapter:model/zydra-base
 - lora
 - transformers
 ---

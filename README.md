@@ -19,8 +19,8 @@
   <a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
     <img src="https://img.shields.io/github/contributors/fareldev-hub/ZydraModel?style=flat-square" alt="Contributors">
   </a>
-  <a href="https://img.shields.io/badge/total%20model%20size-1.43%20GiB-blue?style=flat-square">
-    <img src="https://img.shields.io/badge/total%20model%20size-1.43%20GiB-blue?style=flat-square" alt="Total ukuran file model sekitar 1.43 GiB">
+  <a href="https://img.shields.io/badge/total%20model%20size-0.96%20GiB-blue?style=flat-square">
+    <img src="https://img.shields.io/badge/total%20model%20size-0.96%20GiB-blue?style=flat-square" alt="Total ukuran file model sekitar 0.96 GiB">
   </a>
   <a href="https://github.com/fareldev-hub/ZydraModel/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/code%20license-MIT-green?style=flat-square" alt="Lisensi kode MIT">
@@ -56,67 +56,47 @@ Grafik khusus repository Zydra:
 
 ## Persiapan
 
-Pastikan Docker Engine tersedia dan letakkan model Qwen2.5-0.5B-Instruct GGUF di:
+Pastikan Docker Engine tersedia. Checkpoint dasar Qwen dan adapter Zydra LoRA
+harus tersedia di folder berikut:
 
 ```text
-model/qwen2.5-0.5b-instruct-q4_k_m.gguf
+model/zydra-base/
+model/zydra-lora/
 ```
 
-Folder `model/` diabaikan Git agar bobot model yang besar tidak ikut masuk ke
-repository. Qwen2.5-0.5B-Instruct adalah model instruction-tuned, mendukung
-template chat, dan checkpoint Hugging Face-nya dapat di-fine-tune dengan LoRA.
-Bobot GGUF Q4_K_M resminya berukuran 491,400,032 byte (sekitar 469 MiB).
-Model dan GGUF resminya tersedia di bawah Apache 2.0. Unduh model:
+API menyediakan satu model layanan, `zydra-lora`, menggunakan adapter yang
+dilatih dengan `training_data/identity_train.jsonl`. Adapter LoRA tetap
+membutuhkan checkpoint dasar Qwen untuk bobot yang tidak diubah saat training;
+folder base tidak boleh dihapus selama adapter belum digabungkan. Folder
+`model/` diabaikan Git agar bobot model tidak masuk ke repository.
 
 ```sh
 python3 -m pip install -U huggingface_hub
-hf download Qwen/Qwen2.5-0.5B-Instruct-GGUF \
-  qwen2.5-0.5b-instruct-q4_k_m.gguf \
-  --local-dir model
+hf download Qwen/Qwen2.5-0.5B-Instruct --local-dir model/zydra-base
 ```
 
-File quantized ini sekitar 469 MiB. Buat atau edit `.env`, gunakan password
-master yang kuat, dan jangan commit file tersebut:
+Buat atau edit `.env`, gunakan password master yang kuat, dan jangan commit
+file tersebut:
 
 ```dotenv
 AUTH=ganti-dengan-password-kuat
-MODEL_PATH=/app/model/qwen2.5-0.5b-instruct-q4_k_m.gguf
+MODEL_PATH=/app/model/zydra-base
+MODEL_LORA_PATH=/app/model/zydra-lora
 API_KEYS_FILE=/data/database/api.json
 ```
 
-Model ini dijalankan dari GGUF menggunakan `llama.cpp` dan template chat model
-otomatis dari metadata GGUF; Ollama tidak diperlukan saat build maupun runtime.
-Ukuran file bobot bukan kebutuhan RAM total: runtime juga memakai memori untuk
-context/KV cache dan proses, sementara kualitas/kemampuan model 0.5B lebih
-terbatas daripada model 1.5B.
+Runtime menggunakan Transformers dan PEFT untuk menerapkan adapter ke checkpoint
+dasar lokal. Container tidak membutuhkan file GGUF atau mengunduh model saat
+runtime.
 
 ## Identitas dan fine-tuning
 
-API tidak lagi menyisipkan identitas sebagai pesan system pada request model.
-Dataset LoRA hanya berisi pesan user/assistant, sehingga identitas Zydra
-dipelajari dalam bobot dan model dapat mempertahankannya saat dijalankan di luar
-API. `training/data.txt` menjadi metadata untuk jawaban identitas deterministik
-di API, bukan prompt model. Tanpa adapter hasil fine-tuning, model Instruct
-dasar tetap dapat memberi jawaban generik atau keliru; fine-tuning tidak
-menjamin semua keluaran selalu benar. Contoh dataset saat ini hanya 35 baris
-dan cocok untuk menguji alur, bukan untuk menjamin perilaku produksi.
-
-Metadata identitas dibaca dari `training/data.txt` oleh handler identitas API.
-Setelah mengubah kode API, rebuild image dan buat ulang container:
-
-```sh
-docker build -t zydra-text .
-docker rm -f zydra
-docker run -d \
-  --name zydra \
-  --restart unless-stopped \
-  -p 8000:8000 \
-  --env-file .env \
-  -v "$(pwd)/model:/app/model:ro" \
-  -v "$(pwd)/training/data.txt:/app/training/data.txt:ro" \
-  -v zydra-data:/data \
-  zydra-text
-```
+API menambahkan aturan agar model tidak menyebut pembuat kecuali ditanya secara
+langsung. Pertanyaan identitas diproses oleh model LoRA; API tidak lagi membuat
+jawaban identitas langsung dari file terpisah. Dataset training hanya digunakan
+saat melatih adapter dan perubahan dataset baru berpengaruh ke bobot setelah
+training ulang. Contoh dataset saat ini hanya 35 baris dan cocok untuk menguji
+alur, bukan untuk menjamin perilaku produksi.
 
 ## Fine-tuning LoRA
 
@@ -129,69 +109,41 @@ diunduh tanpa akses gated:
 ```sh
 python3 -m pip install -r requirements-training.txt
 hf download Qwen/Qwen2.5-0.5B-Instruct \
-  --local-dir model/qwen2.5-0.5b-instruct
+  --local-dir model/zydra-base
 python3 scripts/train_identity_lora.py \
-  --base-model model/qwen2.5-0.5b-instruct \
+  --base-model model/zydra-base \
   --train-file training_data/identity_train.jsonl \
   --epochs 6
 ```
 
 Training memerlukan RAM/VRAM yang cukup; GPU CUDA disarankan dan training CPU
-bisa sangat lambat. Adapter LoRA dapat dijalankan bersama GGUF dasar tanpa
-menulis salinan model gabungan berukuran besar. Konversikan adapter dengan
-`llama.cpp`:
-
-```sh
-git clone --depth 1 https://github.com/ggml-org/llama.cpp
-python3 llama.cpp/convert_lora_to_gguf.py \
-  model/qwen2.5-0.5b-zydra-lora \
-  --base model/qwen2.5-0.5b-instruct \
-  --outfile model/qwen2.5-0.5b-zydra-lora.gguf \
-  --outtype f16
-```
-
-Atur `MODEL_PATH` ke GGUF dasar dan `MODEL_LORA_PATH` ke adapter GGUF pada
-`.env`, lalu recreate container. Bobot dasar Q4_K_M (~469 MiB) dan adapter
-LoRA tetap terpisah; adapter diterapkan saat runtime dan bukan system prompt.
-Skrip `merge_identity_lora.py` tetap tersedia bila diperlukan ekspor model
-gabungan mandiri, tetapi proses merge dan konversi memerlukan ruang disk lebih
-banyak.
+bisa sangat lambat. Saat runtime, adapter diterapkan ke checkpoint dasar lokal.
+Adapter tidak dapat dipakai sebagai file mandiri; menggabungkannya agar hanya
+menyimpan bobot Zydra memerlukan proses merge tersendiri dan perubahan runtime.
 
 ## Build dan jalankan
 
-Build image aplikasi:
+Jalankan satu alur berikut dari root repository. Pastikan model dan file `.env`
+sudah tersedia seperti dijelaskan di bagian persiapan:
 
 ```sh
 docker build -t zydra-text .
-```
-
-Buat volume permanen untuk model dan konfigurasi, lalu jalankan container:
-
-```sh
 docker volume create zydra-data
-# Jika container versi lama masih berjalan, hapus container-nya terlebih dahulu.
-docker rm -f zydra
+docker rm -f zydra 2>/dev/null || true
 docker run -d \
   --name zydra \
   --restart unless-stopped \
   -p 8000:8000 \
   --env-file .env \
   -v "$(pwd)/model:/app/model:ro" \
-  -v "$(pwd)/training/data.txt:/app/training/data.txt:ro" \
   -v zydra-data:/data \
   zydra-text
-```
-
-Model harus sudah ada di folder `model/` sebelum container dijalankan. Pantau
-proses pemuatan:
-
-```sh
 docker logs -f zydra
 ```
 
-Pemuatan selesai saat log menampilkan `Model Zydra lokal siap.`. File bobot
-model sekitar 469 MiB; bobot tetap berada di folder proyek dan tidak disalin ke
-image. Hentikan tampilan log dengan `Ctrl+C`; container tetap berjalan.
+Tunggu sampai log menampilkan `Model Zydra LoRA siap.`. Hentikan tampilan log
+dengan `Ctrl+C`; container tetap berjalan. Bobot model dipasang dari folder
+proyek dan tidak disalin ke image.
 
 Pastikan API dan model siap:
 
@@ -199,15 +151,16 @@ Pastikan API dan model siap:
 curl http://localhost:8000/health
 ```
 
-Lanjutkan setelah respons berisi `"model_ready":true`. API Explorer tersedia di `http://localhost:8000/`. Setiap route ditampilkan
-sebagai item tersendiri. Klik **Try it out**, isi parameter atau body yang
-tersedia, lalu **Execute** untuk melihat status dan response route tersebut.
+Lanjutkan setelah respons berisi `"model_ready":true`. API Explorer tersedia di
+`http://localhost:8000/`; endpoint GET dan POST dipisahkan dalam tab. Klik
+**Try it out**, isi parameter atau body yang tersedia, lalu **Execute** untuk
+melihat status dan response. Nama model dikunci ke `zydra-lora`.
 Saat halaman dibuka, SweetAlert meminta nilai `AUTH` dari file `.env`. Masukkan
 nilainya di popup; server memverifikasinya sebelum menampilkan halaman. AUTH
 yang salah menolak akses. Credential hanya diminta sekali saat awal dan hanya
 disimpan di memori selama halaman terbuka; tidak ditanamkan ke HTML atau
-disimpan di browser. Tombol **Buat API key** meminta nama saja, kemudian server
-membuat key acak dan UI menampilkan nilai lengkapnya sekali dengan opsi salin.
+disimpan di browser. Request prompt di UI mendukung kolom `instruction` untuk
+memberi arahan sistem sebelum prompt dikirim ke model.
 Response JSON memakai syntax highlighting; panel **Contoh penggunaan API**
 menyediakan JavaScript backend, JavaScript fetch, Python, dan cURL. Halaman
 dokumentasi `/docs` dan schema `/openapi.json` tetap dinonaktifkan.
@@ -261,7 +214,7 @@ set +a
 curl http://localhost:8000/v1/chat/completions \
   -H "Authorization: Bearer $AUTH" \
   -H "Content-Type: application/json" \
-  -d '{"model":"zydra","messages":[{"role":"user","content":"Balas singkat: AI siap"}]}'
+  -d '{"model":"zydra-lora","messages":[{"role":"user","content":"Balas singkat: AI siap"}]}'
 ```
 
 Jawaban model muncul di `choices[0].message.content`. Endpoint `/health` dan
@@ -301,30 +254,7 @@ tidak disimpan dalam file.
 
 ## Lisensi
 
-Base model Qwen2.5-0.5B-Instruct dan varian GGUF resminya tersedia di bawah
-Apache License 2.0. Salinan lengkap lisensi ada di
-[`MODEL_LICENSES/QWEN-APACHE-2.0.txt`](MODEL_LICENSES/QWEN-APACHE-2.0.txt);
-notice dan atribusi model juga ada di `MODEL_LICENSES/NOTICE.md`. Keduanya
-disertakan dalam Docker image di `/app/MODEL_LICENSES`. Lisensi model berlaku
-terpisah dari lisensi MIT kode proyek. Lihat pula
-[lisensi resmi Qwen](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/blob/main/LICENSE).
-
-## Perintah Docker
-
-```sh
-docker logs -f zydra
-docker stop zydra
-docker start zydra
-docker rm -f zydra
-```
-
-Model berada di folder proyek `model/`, terpisah dari volume `zydra-data`.
-Menghapus volume `zydra-data` hanya menghapus konfigurasi dan API key; untuk
-menghapus bobot model, hapus file lokal
-`model/qwen2.5-0.5b-instruct-q4_k_m.gguf`.
-
-API tester dilayani di route root (`/`) dan menampilkan response endpoint yang
-dipilih. Endpoint dokumentasi `/docs` dan `/openapi.json` tetap dinonaktifkan.
+Base model Qwen2.5-0.5B-Instruct tersedia di bawah Apache License 2.0
 
 Notice base model tersedia di `MODEL_LICENSES/`.
 

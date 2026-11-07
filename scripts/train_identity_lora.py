@@ -88,7 +88,7 @@ def main() -> None:
         "--train-file", type=Path, default=Path("training_data/identity_train.jsonl")
     )
     parser.add_argument(
-        "--output-dir", type=Path, default=Path("model/qwen2.5-0.5b-zydra-lora")
+        "--output-dir", type=Path, default=Path("model/zydra-lora")
     )
     parser.add_argument("--epochs", type=float, default=3)
     parser.add_argument("--batch-size", type=int, default=1)
