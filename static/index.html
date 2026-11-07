@@ -37,6 +37,31 @@
     textarea { min-height: 94px; resize: vertical; font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
     .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 11px; }
     .section-heading span { color: var(--muted); font-size: 12px; }
+    .key-manager { margin: 0 0 30px; padding: 18px; border: 1px solid var(--border); border-radius: 7px; background: white; }
+    .key-manager-intro { margin: 4px 0 15px; color: var(--muted); font-size: 13px; }
+    .key-create-form { display: flex; align-items: end; gap: 9px; }
+    .key-name-field { flex: 1; min-width: 0; }
+    .key-create-button { min-height: 38px; padding: 7px 13px; border: 1px solid #1769aa; border-radius: 5px; color: white; background: #1769aa; font-weight: 700; white-space: nowrap; }
+    .key-create-button:hover { background: #12598f; }
+    .key-create-button:disabled, .key-delete-button:disabled, .copy-button:disabled { cursor: wait; opacity: .6; }
+    .key-message { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+    .key-message[data-error="true"] { color: #b4232a; }
+    .key-list { display: grid; gap: 9px; margin: 16px 0 0; padding: 0; list-style: none; }
+    .key-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid #e5eaf0; border-radius: 5px; }
+    .key-info { min-width: 0; }
+    .key-name { display: block; overflow-wrap: anywhere; font-weight: 700; }
+    .key-details { color: var(--muted); font-size: 12px; }
+    .key-prefix { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .key-item-actions { display: flex; flex: none; gap: 7px; }
+    .key-delete-button { min-height: 34px; padding: 5px 10px; border: 1px solid #d8a1a3; border-radius: 5px; color: #b4232a; background: white; font-weight: 700; }
+    .key-delete-button:hover { background: #fff3f3; }
+    .new-key-notice { margin-top: 15px; padding: 13px; border: 1px solid #a7d7bb; border-radius: 5px; background: #f0fbf4; }
+    .new-key-notice[hidden] { display: none; }
+    .new-key-title { margin: 0 0 4px; color: #17663b; font-weight: 750; }
+    .new-key-help { margin: 0 0 9px; color: #466353; font-size: 12px; }
+    .new-key-value { display: flex; align-items: center; gap: 8px; }
+    .new-key-value code { flex: 1; padding: 8px; border: 1px solid #d4e4d9; border-radius: 4px; background: white; }
+    .key-retry-button { margin-left: 6px; border: 0; color: #1769aa; background: transparent; font-weight: 700; text-decoration: underline; }
     .method-tabs { display: flex; gap: 8px; margin: 0 0 14px; border-bottom: 1px solid var(--border); }
     .method-tab { min-width: 88px; padding: 8px 12px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-weight: 750; }
     .method-tab[aria-selected="true"] { border-bottom-color: var(--blue); color: var(--blue); }
@@ -109,6 +134,10 @@
       .endpoint-actions { gap: 5px; }
       .field-grid { grid-template-columns: 1fr; }
       .field.full { grid-column: auto; }
+      .key-create-form { align-items: stretch; flex-direction: column; }
+      .key-item { align-items: flex-start; flex-direction: column; }
+      .key-item-actions { width: 100%; }
+      .new-key-value { align-items: stretch; flex-direction: column; }
       footer { flex-direction: column; }
     }
   </style>
@@ -122,6 +151,31 @@
   <main class="shell">
     <h1>Zydra API</h1>
     <p class="intro">Pilih endpoint, tekan <strong>Try it out</strong>, isi parameter bila diperlukan, lalu jalankan request dan lihat response JSON.</p>
+
+    <section class="key-manager" aria-labelledby="key-manager-title">
+      <div class="section-heading">
+        <h2 id="key-manager-title">Kelola API keys</h2>
+        <span id="key-count">0 API key</span>
+      </div>
+      <p class="key-manager-intro">Buat key untuk menggunakan API. Key hanya ditampilkan sekali saat dibuat; salin dan simpan di tempat aman.</p>
+      <form class="key-create-form" id="key-create-form">
+        <div class="key-name-field">
+          <label for="key-name">Nama API key</label>
+          <input id="key-name" name="name" type="text" maxlength="80" required placeholder="Contoh: Aplikasi produksi">
+        </div>
+        <button class="key-create-button" id="key-create-button" type="submit">Buat API key</button>
+      </form>
+      <p class="key-message" id="key-message" role="status" aria-live="polite"></p>
+      <div class="new-key-notice" id="new-key-notice" role="status" aria-live="polite" hidden>
+        <p class="new-key-title">API key berhasil dibuat</p>
+        <p class="new-key-help">Salin sekarang. Nilai lengkapnya tidak dapat dilihat lagi setelah bagian ini ditutup atau halaman dimuat ulang.</p>
+        <div class="new-key-value">
+          <code id="new-key-value"></code>
+          <button class="copy-button" id="copy-new-key" type="button">Salin key</button>
+        </div>
+      </div>
+      <ul class="key-list" id="key-list" aria-label="Daftar API keys"></ul>
+    </section>
 
     <div class="section-heading">
       <h2>Endpoints</h2>
@@ -249,7 +303,16 @@ print(response.json()["response"])</code></pre>
       GET: document.getElementById("endpoint-list-get"),
       POST: document.getElementById("endpoint-list-post"),
     };
+    const keyList = document.getElementById("key-list");
+    const keyMessage = document.getElementById("key-message");
+    const keyCount = document.getElementById("key-count");
+    const keyCreateForm = document.getElementById("key-create-form");
+    const keyCreateButton = document.getElementById("key-create-button");
+    const newKeyNotice = document.getElementById("new-key-notice");
+    const newKeyValue = document.getElementById("new-key-value");
+    const copyNewKeyButton = document.getElementById("copy-new-key");
     let apiCredential = "";
+    let activeApiKeys = [];
     document.getElementById("year").textContent = new Date().getFullYear();
 
     async function requestCredential() {
@@ -292,12 +355,169 @@ print(response.json()["response"])</code></pre>
             return false;
           }
         },
-      }).then((result) => {
+      }).then(async (result) => {
         if (result.isConfirmed && result.value) {
           apiCredential = result.value;
           appShell.hidden = false;
+          await loadApiKeys();
         }
       });
+    }
+
+    async function apiKeyRequest(path, options = {}) {
+      const response = await fetch(path, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          "X-API-Key": apiCredential,
+        },
+      });
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch {
+        if (response.ok) throw new Error("Server mengirim response yang tidak valid.");
+      }
+      if (!response.ok) {
+        throw new Error(payload.detail || `Request gagal (HTTP ${response.status}).`);
+      }
+      return payload;
+    }
+
+    function setKeyMessage(message, isError = false, retry = false) {
+      keyMessage.replaceChildren(document.createTextNode(message));
+      keyMessage.dataset.error = String(isError);
+      if (retry) {
+        const retryButton = document.createElement("button");
+        retryButton.className = "key-retry-button";
+        retryButton.type = "button";
+        retryButton.textContent = "Coba lagi";
+        retryButton.addEventListener("click", loadApiKeys);
+        keyMessage.append(retryButton);
+      }
+    }
+
+    function renderApiKeys(records) {
+      activeApiKeys = records;
+      keyCount.textContent = `${records.length} ${records.length === 1 ? "API key" : "API keys"}`;
+      keyList.replaceChildren();
+      if (records.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "key-details";
+        empty.textContent = "Belum ada API key. Buat key pertama menggunakan formulir di atas.";
+        keyList.append(empty);
+        return;
+      }
+
+      for (const record of records) {
+        const item = document.createElement("li");
+        item.className = "key-item";
+        const info = document.createElement("div");
+        info.className = "key-info";
+        const name = document.createElement("span");
+        name.className = "key-name";
+        name.textContent = record.name;
+        const details = document.createElement("span");
+        details.className = "key-details";
+        const prefix = document.createElement("span");
+        prefix.className = "key-prefix";
+        prefix.textContent = record.prefix;
+        const createdDate = new Date(record.created_at);
+        const created = document.createElement("span");
+        created.textContent = ` · Dibuat ${Number.isNaN(createdDate.getTime()) ? record.created_at : createdDate.toLocaleString("id-ID")}`;
+        details.append(prefix, created);
+        info.append(name, details);
+
+        const actions = document.createElement("div");
+        actions.className = "key-item-actions";
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "key-delete-button";
+        deleteButton.type = "button";
+        deleteButton.textContent = "Hapus";
+        deleteButton.setAttribute("aria-label", `Hapus API key ${record.name}`);
+        deleteButton.addEventListener("click", () => deleteApiKey(record, deleteButton));
+        actions.append(deleteButton);
+        item.append(info, actions);
+        keyList.append(item);
+      }
+    }
+
+    async function loadApiKeys() {
+      setKeyMessage("Memuat API keys...");
+      try {
+        const payload = await apiKeyRequest("/v1/api-keys");
+        if (!Array.isArray(payload.data)) throw new Error("Format daftar API key dari server tidak valid.");
+        renderApiKeys(payload.data);
+        setKeyMessage("");
+        return true;
+      } catch (error) {
+        setKeyMessage(`Gagal memuat API keys: ${error.message}`, true, true);
+        return false;
+      }
+    }
+
+    keyCreateForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const name = keyCreateForm.elements.namedItem("name").value.trim();
+      if (!name) {
+        setKeyMessage("Nama API key wajib diisi.", true);
+        return;
+      }
+      keyCreateButton.disabled = true;
+      keyCreateButton.textContent = "Membuat...";
+      try {
+        const payload = await apiKeyRequest("/v1/api-keys", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (!payload.api_key || !payload.key) throw new Error("Server tidak mengembalikan API key yang baru dibuat.");
+        newKeyValue.textContent = payload.api_key;
+        newKeyNotice.hidden = false;
+        keyCreateForm.reset();
+        const refreshed = await loadApiKeys();
+        if (refreshed) setKeyMessage(`API key "${payload.key.name}" berhasil dibuat.`);
+      } catch (error) {
+        setKeyMessage(`Gagal membuat API key: ${error.message}`, true);
+      } finally {
+        keyCreateButton.disabled = false;
+        keyCreateButton.textContent = "Buat API key";
+      }
+    });
+
+    copyNewKeyButton.addEventListener("click", async () => {
+      try {
+        await copyCode(newKeyValue.textContent);
+        copyNewKeyButton.textContent = "Tersalin";
+      } catch (error) {
+        setKeyMessage(`Gagal menyalin API key: ${error.message}`, true);
+      }
+      setTimeout(() => { copyNewKeyButton.textContent = "Salin key"; }, 1500);
+    });
+
+    async function deleteApiKey(record, button) {
+      const confirmed = typeof Swal !== "undefined"
+        ? (await Swal.fire({
+          title: "Hapus API key?",
+          text: `Key "${record.name}" tidak dapat digunakan lagi setelah dihapus.`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Ya, hapus",
+          cancelButtonText: "Batal",
+          confirmButtonColor: "#b4232a",
+        })).isConfirmed
+        : window.confirm(`Hapus API key "${record.name}"?`);
+      if (!confirmed) return;
+
+      button.disabled = true;
+      try {
+        await apiKeyRequest(`/v1/api-keys/${encodeURIComponent(record.id)}`, { method: "DELETE" });
+        renderApiKeys(activeApiKeys.filter((key) => key.id !== record.id));
+        setKeyMessage(`API key "${record.name}" berhasil dihapus.`);
+      } catch (error) {
+        button.disabled = false;
+        setKeyMessage(`Gagal menghapus API key: ${error.message}`, true);
+      }
     }
 
     function addField(grid, definition, endpointId) {
