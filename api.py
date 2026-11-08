@@ -314,7 +314,6 @@ class LlamaServerChatModel:
         }
 
 
-@app.on_event("startup")
 def load_local_model() -> None:
     global LOCAL_MODEL, MODEL_STATUS
 
@@ -351,6 +350,11 @@ def load_local_model() -> None:
         "model_ready": True,
     }
     print(MODEL_STATUS["message"], flush=True)
+
+
+@app.on_event("startup")
+def start_model_loading() -> None:
+    threading.Thread(target=load_local_model, name="model-loader", daemon=True).start()
 
 
 class Message(BaseModel):
