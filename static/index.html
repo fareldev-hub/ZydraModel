@@ -1051,7 +1051,7 @@ app.post("/ask", async (req, res) =&gt; {
       "X-API-Key": process.env.ZYDRA_API_KEY
     },
     body: JSON.stringify({
-      model: "zydra-luRa",
+      model: "zydra-loRa",
       messages: [{ role: "user", content: req.body.prompt }]
     })
   });
@@ -1070,7 +1070,7 @@ app.listen(3000);</code></pre>
     "X-API-Key": apiKey
   },
   body: JSON.stringify({
-    model: "zydra-luRa",
+    model: "zydra-loRa",
     messages: [{ role: "user", content: "Jelaskan fotosintesis secara singkat." }]
   })
 });
@@ -1087,7 +1087,7 @@ response = requests.post(
     "http://localhost:8000/v1/chat/completions",
     headers={"X-API-Key": os.environ["ZYDRA_API_KEY"]},
     json={
-        "model": "zydra-luRa",
+        "model": "zydra-loRa",
         "messages": [{"role": "user", "content": "Jelaskan fotosintesis secara singkat."}],
     },
     timeout=120,
@@ -1100,7 +1100,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         <pre class="example-code"><code>curl http://localhost:8000/v1/chat/completions \
   -H "X-API-Key: $ZYDRA_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model":"zydra-luRa","messages":[{"role":"user","content":"Jelaskan fotosintesis secara singkat."}]}'</code></pre>
+  -d '{"model":"zydra-loRa","messages":[{"role":"user","content":"Jelaskan fotosintesis secara singkat."}]}'</code></pre>
       </article>
     </section>
     </section>
@@ -1125,7 +1125,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       ] },
       { id: "vision-get", method: "GET", path: "/v1/chat/vision", title: "Chat dengan gambar", auth: true, fields: [
         { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi; dikirim melalui header X-API-Key." },
-        { name: "model", label: "model", type: "text", value: "zydra-luRa", readonly: true, note: "Model layanan yang digunakan." },
+        { name: "model", label: "model", type: "text", value: "zydra-loRa", readonly: true, note: "Model layanan yang digunakan." },
         { name: "image_link", label: "image_link", type: "text", required: true, value: "", placeholder: "https://example.com/gambar.jpg", note: "URL publik langsung ke gambar JPEG, PNG, atau WebP (maksimal 10 MB)." },
         { name: "caption", label: "caption", type: "textarea", required: false, value: "Jelaskan isi gambar ini.", note: "Pertanyaan atau instruksi tentang gambar." },
         { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "256", step: "1", min: "1" },
@@ -1609,7 +1609,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
             "X-API-Key": apiCredential,
           },
           body: JSON.stringify({
-            model: "zydra-luRa",
+            model: "zydra-loRa",
             messages: chatMessages,
           }),
         });

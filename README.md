@@ -58,11 +58,11 @@ Grafik khusus repository Zydra:
 Pastikan Docker Engine tersedia dan kedua file model vision berikut ada:
 
 ```text
-model/zydra-luRa.gguf
-model/mmproj-zydra-luRa.gguf
+model/zydra-loRa.gguf
+model/mmproj-zydra-loRa.gguf
 ```
 
-API menggunakan model layanan `zydra-luRa`, SmolVLM2 500M Q8_0 yang mendukung
+API menggunakan model layanan `zydra-loRa`, SmolVLM2 500M Q8_0 yang mendukung
 gambar dan teks. llama.cpp memerlukan GGUF utama dan `mmproj` untuk encoder
 gambar. Kedua berkas berukuran sekitar 521 MiB dan dipasang dari `model/`;
 folder tersebut diabaikan Git.
@@ -101,7 +101,7 @@ docker compose up -d --build
 ```
 
 Container tetap berjalan setelah perintah selesai. Pantau startup dan tunggu
-sampai log menampilkan `Model vision zydra-luRa.gguf siap.`:
+sampai log menampilkan `Model vision zydra-loRa.gguf siap.`:
 
 ```sh
 docker compose logs -f zydra llama
@@ -116,8 +116,8 @@ docker compose down
 
 Bobot model dipasang dari folder proyek dan tidak disalin ke image. Port host
 default adalah `8000`; ubah dengan `HOST_PORT` di file `.env` bila port tersebut
-sudah digunakan. Model memerlukan `zydra-luRa.gguf` beserta
-`mmproj-zydra-luRa.gguf`.
+sudah digunakan. Model memerlukan `zydra-loRa.gguf` beserta
+`mmproj-zydra-loRa.gguf`.
 
 Pastikan API dan model siap:
 
@@ -130,7 +130,7 @@ Lanjutkan setelah respons berisi `"model_ready":true`. API Explorer tersedia di
 **Try it out**, isi parameter, lalu **Execute** untuk melihat status dan
 response. POST chat OpenAI-compatible dan operasi API key tetap tersedia di
 backend, tetapi tidak ditampilkan dalam daftar Explorer. Nama model dikunci ke
-`zydra-luRa`.
+`zydra-loRa`.
 Saat halaman dibuka, SweetAlert meminta nilai `AUTH` dari file `.env`. Masukkan
 nilainya di popup; server memverifikasinya sebelum menampilkan halaman. Setelah
 verifikasi berhasil, AUTH disimpan di `localStorage` browser agar halaman tidak
@@ -193,7 +193,7 @@ set +a
 curl http://localhost:8000/v1/chat/completions \
   -H "Authorization: Bearer $AUTH" \
   -H "Content-Type: application/json" \
-  -d '{"model":"zydra-luRa","messages":[{"role":"user","content":"Balas singkat: AI siap"}]}'
+  -d '{"model":"zydra-loRa","messages":[{"role":"user","content":"Balas singkat: AI siap"}]}'
 ```
 
 Route `GET /v1/chat/vision` menerima URL gambar publik dan caption opsional,

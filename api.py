@@ -27,9 +27,9 @@ app = FastAPI(
     openapi_url=None,
 )
 
-MODEL_PATH = Path(os.getenv("MODEL_PATH", "/app/model/zydra-luRa.gguf"))
+MODEL_PATH = Path(os.getenv("MODEL_PATH", "/app/model/zydra-loRa.gguf"))
 MODEL_SERVER_URL = os.getenv("MODEL_SERVER_URL", "http://llama:8080").rstrip("/")
-MODEL_ID = "zydra-luRa"
+MODEL_ID = "zydra-loRa"
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 AUTH_FILE = Path(os.getenv("AUTH_FILE", "/data/auth"))
@@ -354,7 +354,7 @@ def load_local_model() -> None:
 
     MODEL_STATUS = {
         "stage": "ready",
-        "message": "Model vision zydra-luRa.gguf siap.",
+        "message": "Model vision zydra-loRa.gguf siap.",
         "model_ready": True,
     }
     print(MODEL_STATUS["message"], flush=True)
