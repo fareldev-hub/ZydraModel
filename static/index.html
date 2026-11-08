@@ -1934,7 +1934,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
           payload[field.name] = input.checked;
           continue;
         }
-        const value = definition.type === "file" ? input.files[0] : input.value.trim();
+        const value = field.type === "file" ? input.files[0] : input.value.trim();
         if (!value) {
           if (field.required) throw new Error(`${field.label} wajib diisi.`);
           continue;
@@ -1947,7 +1947,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
           }
         } else if (field.type === "number") {
           payload[field.name] = Number(value);
-        } else if (definition.type === "file") {
+        } else if (field.type === "file") {
           payload[field.name] = value;
         } else {
           payload[field.name] = value;
