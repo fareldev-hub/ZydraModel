@@ -1,0 +1,46 @@
+services:
+  zydra:
+    build:
+      context: .
+    image: zydra-text
+    container_name: zydra
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MODEL_PATH: /app/model/zydra-luRa.gguf
+      MODEL_SERVER_URL: http://llama:8080
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    volumes:
+      - ./model/zydra-luRa.gguf:/app/model/zydra-luRa.gguf:ro
+      - zydra-data:/data
+    depends_on:
+      - llama
+
+  llama:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: zydra-llama
+    restart: unless-stopped
+    command:
+      - -m
+      - /models/zydra-luRa.gguf
+      - --mmproj
+      - /models/mmproj-zydra-luRa.gguf
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --alias
+      - zydra-luRa
+      - --ctx-size
+      - "${MODEL_CONTEXT_SIZE:-2048}"
+      - --threads
+      - "${MODEL_THREADS:-4}"
+      - --no-mmproj-offload
+    volumes:
+      - ./model/zydra-luRa.gguf:/models/zydra-luRa.gguf:ro
+      - ./model/mmproj-zydra-luRa.gguf:/models/mmproj-zydra-luRa.gguf:ro
+
+volumes:
+  zydra-data:

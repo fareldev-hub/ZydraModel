@@ -1,0 +1,2062 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fa">
+  <meta name="description" content="Dokumentasi interaktif dan API explorer Zydra.">
+  <title>Zydra API</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      color-scheme: light;
+      font: 14px/1.5 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #1e293b;
+      background: #f8fafc;
+      --border: #e2e8f0;
+      --border-light: #f1f5f9;
+      --muted: #64748b;
+      --blue: #2563eb;
+      --blue-hover: #1d4ed8;
+      --blue-soft: #eff6ff;
+      --panel: #fff;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --radius: 10px;
+      --radius-sm: 7px;
+      --transition: 0.15s ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-width: 320px; background: #f8fafc; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+    button:disabled { cursor: not-allowed; opacity: 0.6; }
+
+    .shell {
+      width: min(1160px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #0f172a;
+      text-decoration: none;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .brand-icon {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 9px;
+      color: white;
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      font-size: 16px;
+      box-shadow: 0 2px 8px rgb(37 99 235 / 0.3);
+    }
+    .top-note {
+      color: var(--muted);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .top-note i { font-size: 12px; }
+
+    .view-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 8px; }
+    .view-tab {
+      padding: 7px 14px;
+      border-radius: 6px;
+      color: #475569;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .view-tab i { font-size: 12px; }
+    .view-tab:hover { color: #1e293b; }
+    .view-tab[aria-selected="true"] {
+      color: #1e40af;
+      background: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    main { padding: 32px 0 64px; }
+    .page[hidden] { display: none; }
+
+    h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: #0f172a; }
+    .intro { margin: 6px 0 24px; color: var(--muted); font-size: 15px; line-height: 1.6; }
+    h2 { font-size: 17px; font-weight: 700; color: #1e293b; }
+
+    label {
+      display: block;
+      margin: 0 0 5px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+    }
+    label i { margin-right: 4px; color: #94a3b8; font-size: 11px; }
+
+    input, textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: var(--radius-sm);
+      outline: none;
+      color: #1e293b;
+      background: #fff;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      font-size: 13px;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+    }
+    input[readonly] {
+      color: #64748b;
+      background: #f8fafc;
+      cursor: not-allowed;
+    }
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+      font: 13px/1.6 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 14px;
+    }
+    .section-heading span {
+      color: var(--muted);
+      font-size: 12px;
+      background: #f1f5f9;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .key-manager {
+      margin: 0 0 32px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: var(--shadow-sm);
+    }
+    .key-manager-intro {
+      margin: 6px 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .key-manager-intro i { color: #f59e0b; margin-top: 2px; }
+
+    .key-create-form {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .key-name-field { flex: 1; min-width: 0; }
+    .key-create-button {
+      min-height: 40px;
+      padding: 8px 18px;
+      border-radius: var(--radius-sm);
+      color: white;
+      background: var(--blue);
+      font-weight: 600;
+      font-size: 13px;
+      white-space: nowrap;
+      transition: background var(--transition), transform var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 1px 3px rgb(37 99 235 / 0.3);
+    }
+    .key-create-button:hover:not(:disabled) { background: var(--blue-hover); }
+    .key-create-button:active:not(:disabled) { transform: scale(0.98); }
+
+    .key-message {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .key-message[data-error="true"] { color: #dc2626; }
+    .key-retry-button {
+      margin-left: 4px;
+      border: 0;
+      color: var(--blue);
+      background: transparent;
+      font-weight: 600;
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .key-list {
+      display: grid;
+      gap: 8px;
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .key-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      background: #fafbfc;
+      transition: border-color var(--transition);
+    }
+    .key-item:hover { border-color: #cbd5e1; }
+    .key-info { min-width: 0; display: flex; align-items: center; gap: 10px; }
+    .key-icon {
+      width: 32px; height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: #eff6ff;
+      color: var(--blue);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .key-name { display: block; overflow-wrap: anywhere; font-weight: 600; font-size: 13px; color: #1e293b; }
+    .key-details { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .key-prefix {
+      font-family: 'SF Mono', ui-monospace, monospace;
+      background: #f1f5f9;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .key-item-actions { display: flex; flex: none; gap: 6px; }
+    .key-delete-button {
+      min-height: 32px;
+      padding: 5px 12px;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-sm);
+      color: #dc2626;
+      background: white;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .key-delete-button:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
+
+    .new-key-notice {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid #86efac;
+      border-radius: var(--radius-sm);
+      background: #f0fdf4;
+    }
+    .new-key-notice[hidden] { display: none; }
+    .new-key-title {
+      margin: 0 0 4px;
+      color: #15803d;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .new-key-help {
+      margin: 0 0 10px;
+      color: #4b7a5c;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .new-key-value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      padding: 5px;
+      border-radius: var(--radius-sm);
+      border: 1px solid #d1fae5;
+    }
+    .new-key-value code {
+      flex: 1;
+      padding: 6px 8px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      font-size: 12px;
+      overflow-x: auto;
+    }
+    .copy-button {
+      min-height: 32px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #475569;
+      background: white;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .copy-button:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+
+    .method-tabs {
+      display: flex;
+      gap: 6px;
+      margin: 0 0 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+    .method-tab {
+      padding: 8px 16px;
+      border-bottom: 2.5px solid transparent;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 700;
+      font-size: 13px;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: -1px;
+    }
+    .method-tab i { font-size: 11px; }
+    .method-tab:hover { color: #1e293b; }
+    .method-tab[aria-selected="true"] {
+      border-bottom-color: var(--blue);
+      color: var(--blue);
+    }
+
+    .method-panel, .endpoint-list { display: grid; gap: 10px; }
+    .method-panel[hidden] { display: none; }
+
+    .endpoint {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--transition);
+    }
+    .endpoint:hover { box-shadow: var(--shadow-md); }
+
+    .endpoint-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+    }
+    .route-info {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .method {
+      min-width: 64px;
+      padding: 4px 10px;
+      border-radius: 5px;
+      color: white;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .method.get { background: #16a34a; }
+    .method.post { background: #2563eb; }
+    .method.delete { background: #dc2626; }
+
+    code {
+      font: 12.5px 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+      overflow-wrap: anywhere;
+    }
+    .endpoint-top code { color: #1e293b; font-weight: 500; }
+    .route-desc { color: var(--muted); font-size: 12px; }
+    .auth-badge {
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 600;
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .auth-badge i { font-size: 9px; }
+
+    .endpoint-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .try-button {
+      min-height: 34px;
+      padding: 6px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: #475569;
+      background: white;
+      font-weight: 600;
+      font-size: 12px;
+      white-space: nowrap;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .try-button:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+
+    .try-area {
+      padding: 18px;
+      border-top: 1px solid var(--border-light);
+      background: #fafbfc;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .field.full { grid-column: 1 / -1; }
+    .field-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+    }
+    .field-checkbox input[type="checkbox"] {
+      flex: 0 0 auto;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--blue);
+    }
+    .field-checkbox label {
+      margin: 0;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .field-checkbox .field-note { margin: 0 0 0 auto; }
+    .field-checkbox.visibility-toggle { margin-top: 7px; }
+    .field-note {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .path-preview {
+      margin: 0 0 14px;
+      color: #475569;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .path-preview i { color: #94a3b8; font-size: 11px; }
+    .path-preview code { color: var(--blue); font-weight: 500; }
+
+    .actions { display: flex; gap: 8px; margin-top: 16px; }
+    .execute-button {
+      min-height: 36px;
+      padding: 7px 18px;
+      border-radius: var(--radius-sm);
+      color: white;
+      background: var(--blue);
+      font-weight: 600;
+      font-size: 13px;
+      transition: background var(--transition), transform var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 1px 3px rgb(37 99 235 / 0.3);
+    }
+    .execute-button:hover:not(:disabled) { background: var(--blue-hover); }
+    .execute-button:active:not(:disabled) { transform: scale(0.98); }
+    .cancel-button {
+      min-height: 36px;
+      padding: 7px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: #475569;
+      background: white;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cancel-button:hover { border-color: #94a3b8; background: #f8fafc; }
+
+    .response {
+      margin-top: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: white;
+    }
+    .response-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-light);
+      background: #f8fafc;
+    }
+    .response-status {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .response-status[data-ok="true"] { color: #16a34a; }
+    .response-status[data-ok="false"] { color: #dc2626; }
+    .response pre, .example-code {
+      max-height: 360px;
+      min-height: 50px;
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      background-color: #f8fafc !important;
+      color: #1e293b;
+      font: 12px/1.6 'SF Mono', 'Cascadia Code', ui-monospace, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .chat-shell {
+      display: flex;
+      min-height: min(680px, calc(100vh - 190px));
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: var(--shadow-md);
+    }
+    .chat-heading {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-heading-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 16px;
+    }
+    .chat-heading h2 { font-size: 16px; }
+    .chat-heading p { margin: 1px 0 0; color: var(--muted); font-size: 12px; }
+
+    .chat-messages {
+      display: flex;
+      flex: 1;
+      min-height: 260px;
+      flex-direction: column;
+      gap: 16px;
+      padding: 22px;
+      overflow-y: auto;
+      background: #fafbfc;
+    }
+    .chat-empty {
+      margin: auto;
+      max-width: 380px;
+      color: var(--muted);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .chat-empty i { font-size: 32px; color: #cbd5e1; }
+
+    .chat-message {
+      display: flex;
+      max-width: min(82%, 760px);
+      flex-direction: column;
+      gap: 4px;
+    }
+    .chat-message[data-role="user"] { align-self: flex-end; }
+    .chat-message[data-role="assistant"] { align-self: flex-start; }
+    .chat-role {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .chat-message[data-role="user"] .chat-role { text-align: right; justify-content: flex-end; }
+    .chat-role i { font-size: 10px; }
+
+    .chat-bubble {
+      padding: 12px 16px;
+      border: 1px solid var(--border-light);
+      border-radius: 4px 16px 16px;
+      background: white;
+      overflow-wrap: anywhere;
+      font-size: 14px;
+      line-height: 1.65;
+      box-shadow: var(--shadow-sm);
+    }
+    .chat-message[data-role="user"] .chat-bubble {
+      border-color: var(--blue);
+      border-radius: 16px 4px 16px 16px;
+      color: white;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      box-shadow: 0 2px 8px rgb(37 99 235 / 0.2);
+    }
+    .chat-bubble > :first-child { margin-top: 0; }
+    .chat-bubble > :last-child { margin-bottom: 0; }
+    .chat-bubble p, .chat-bubble ul, .chat-bubble ol, .chat-bubble blockquote { margin: 0 0 10px; }
+    .chat-bubble h1, .chat-bubble h2, .chat-bubble h3, .chat-bubble h4 {
+      margin: 14px 0 7px;
+      letter-spacing: normal;
+      font-weight: 700;
+    }
+    .chat-bubble h1 { font-size: 1.3em; }
+    .chat-bubble h2 { font-size: 1.18em; }
+    .chat-bubble h3, .chat-bubble h4 { font-size: 1.05em; }
+    .chat-bubble ul, .chat-bubble ol { padding-left: 22px; }
+    .chat-bubble li { margin-bottom: 3px; }
+    .chat-bubble blockquote {
+      padding: 6px 12px;
+      border-left: 3px solid #93c5fd;
+      color: #475569;
+      background: #f8fafc;
+      border-radius: 0 6px 6px 0;
+    }
+    .chat-bubble pre {
+      margin: 10px 0;
+      padding: 12px;
+      overflow-x: auto;
+      border-radius: 8px;
+      color: #e2e8f0;
+      background: #0f172a;
+      font-size: 12px;
+    }
+    .chat-bubble pre code { color: inherit; background: none; padding: 0; }
+    .chat-bubble code {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: #f1f5f9;
+      font-size: 0.9em;
+    }
+    .chat-message[data-role="user"] .chat-bubble code {
+      color: #1e293b;
+      background: rgba(255,255,255,0.9);
+    }
+    .chat-bubble a { color: #2563eb; text-decoration: underline; }
+    .chat-message[data-role="user"] .chat-bubble a { color: #bfdbfe; }
+
+    .chat-form {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border-light);
+      background: white;
+    }
+    .chat-input {
+      flex: 1;
+      min-width: 0;
+      height: 46px;
+      font: inherit;
+      font-size: 14px;
+      border-radius: 12px;
+      padding: 0 16px;
+      border: 1.5px solid #e2e8f0;
+      outline: none;
+      color: #1e293b;
+      background: #fff;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .chat-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+    }
+    .chat-send {
+      height: 46px;
+      padding: 0 20px;
+      border-radius: 12px;
+      color: white;
+      background: var(--blue);
+      font-weight: 600;
+      font-size: 14px;
+      transition: background var(--transition), transform var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      box-shadow: 0 1px 3px rgb(37 99 235 / 0.3);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .chat-send:hover:not(:disabled) { background: var(--blue-hover); }
+    .chat-send:active:not(:disabled) { transform: scale(0.97); }
+
+    .chat-status {
+      min-height: 20px;
+      margin: 0;
+      padding: 0 16px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chat-status[data-error="true"] { color: #dc2626; }
+    .chat-status:not(:empty)::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .example-code code { display: block; background-color: transparent !important; color: inherit; }
+
+    .json-string { color: #16a34a; }
+    .json-number { color: #ea580c; }
+    .json-boolean { color: #7c3aed; }
+    .json-key { color: #2563eb; font-weight: 600; }
+
+    .code-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-bottom: 0;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      color: var(--muted);
+      background: #f1f5f9;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .code-toolbar + .example-code {
+      border: 1px solid var(--border);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    }
+    .code-token-keyword { color: #7c3aed; font-weight: 600; }
+    .code-token-string { color: #16a34a; }
+    .code-token-comment { color: #94a3b8; font-style: italic; }
+    .code-token-number { color: #ea580c; }
+    .code-token-function { color: #2563eb; }
+    .code-token-literal { color: #db2777; }
+    .copy-example-button {
+      padding: 3px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      color: #475569;
+      background: white;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .copy-example-button:hover { border-color: var(--blue); color: var(--blue); }
+
+    .examples {
+      margin-top: 32px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: white;
+      box-shadow: var(--shadow-sm);
+    }
+    .examples h2 { margin-bottom: 5px; }
+    .examples-intro {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .example-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .example-tab {
+      padding: 7px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: #475569;
+      background: #fff;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .example-tab:hover { border-color: #94a3b8; }
+    .example-tab[aria-selected="true"] {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+    .example-panel h3 { margin: 0 0 8px; font-size: 14px; }
+    .example-panel p { margin: 0 0 10px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .example-panel[hidden] { display: none; }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px 0;
+      color: var(--muted);
+      font-size: 12px;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+    footer a { color: var(--blue); text-decoration: none; font-weight: 600; }
+    footer a:hover { text-decoration: underline; }
+    footer i { font-size: 11px; margin-right: 3px; }
+
+    @media (max-width: 720px) {
+      .shell { width: calc(100% - 20px); }
+      .top-note { display: none; }
+      .view-tab { padding: 6px 10px; font-size: 12px; }
+      .view-tab i { display: none; }
+      main { padding-top: 24px; }
+      h1 { font-size: 24px; }
+      .intro { font-size: 14px; }
+
+      .endpoint-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .endpoint-actions { align-self: flex-end; }
+      .route-info { gap: 6px; }
+      .route-desc { flex-basis: 100%; }
+      .auth-badge { flex-basis: auto; }
+
+      .field-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+
+      .key-create-form { flex-direction: column; align-items: stretch; }
+      .key-item { flex-direction: column; align-items: stretch; }
+      .key-info { margin-bottom: 8px; }
+      .key-item-actions { justify-content: flex-end; }
+      .new-key-value { flex-direction: column; align-items: stretch; }
+
+      .chat-shell { min-height: calc(100vh - 160px); }
+      .chat-messages { padding: 14px; }
+      .chat-message { max-width: 94%; }
+      .chat-form { flex-direction: column; align-items: stretch; gap: 8px; }
+      .chat-input { width: 100%; }
+      .chat-send { width: 100%; justify-content: center; }
+
+      .examples { padding: 16px; }
+      .example-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+      .example-tab { flex-shrink: 0; }
+
+      footer { flex-direction: column; text-align: center; }
+    }
+
+    @media (max-width: 480px) {
+      .brand { font-size: 16px; }
+      .brand-icon { width: 32px; height: 32px; font-size: 14px; }
+      h1 { font-size: 22px; }
+      .endpoint-top { padding: 12px; }
+      .try-area { padding: 14px; }
+      .method-tab { padding: 7px 12px; font-size: 12px; }
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div id="app-shell" hidden>
+  <header class="shell">
+    <a class="brand" href="/" aria-label="Zydra API">
+      <span class="brand-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
+      <span>Zydra API</span>
+    </a>
+    <nav class="view-tabs" aria-label="Halaman">
+      <button class="view-tab" type="button" data-page="chat-page" aria-selected="true">
+        <i class="fa-regular fa-comment-dots"></i> Chat AI
+      </button>
+      <button class="view-tab" type="button" data-page="api-page" aria-selected="false">
+        <i class="fa-solid fa-code"></i> API Explorer
+      </button>
+    </nav>
+  </header>
+  <main class="shell">
+    <section class="page" id="chat-page" aria-labelledby="chat-title">
+      <h1 id="chat-title">Chat dengan Zydra</h1>
+      <p class="intro">Tanyakan sesuatu dan lanjutkan percakapan. Jawaban mendukung format Markdown.</p>
+      <div class="chat-shell">
+        <div class="chat-heading">
+          <div class="chat-heading-icon"><i class="fa-solid fa-robot"></i></div>
+          <div>
+            <h2>Zydra AI</h2>
+            <p>Asisten AI teks</p>
+          </div>
+        </div>
+        <div class="chat-messages" id="chat-transcript" role="log" aria-live="polite" aria-label="Percakapan">
+          <p class="chat-empty"><i class="fa-regular fa-message"></i>Mulai percakapan dengan mengirim pesan di bawah.</p>
+        </div>
+        <form class="chat-form" id="chat-form">
+          <label class="sr-only" for="chat-input">Pesan untuk Zydra</label>
+          <input class="chat-input" id="chat-input" name="message" type="text" maxlength="32000" placeholder="Tulis pesan..." autocomplete="off" required>
+          <button class="chat-send" id="chat-send" type="submit"><i class="fa-solid fa-paper-plane"></i> Kirim</button>
+        </form>
+        <p class="chat-status" id="chat-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <section class="page" id="api-page" aria-labelledby="api-title" hidden>
+    <h1 id="api-title">Zydra API</h1>
+    <p class="intro">Pilih endpoint GET, tekan <strong>Try it out</strong>, isi parameter bila diperlukan, lalu jalankan request dan lihat response JSON.</p>
+
+    <section class="key-manager" aria-labelledby="key-manager-title">
+      <div class="section-heading">
+        <h2 id="key-manager-title"><i class="fa-solid fa-key" style="margin-right:6px;color:#f59e0b;"></i> Kelola API keys</h2>
+        <span id="key-count">0 API key</span>
+      </div>
+      <p class="key-manager-intro">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Buat key untuk menggunakan API. AUTH dan key aktif disimpan di localStorage agar tidak diminta lagi dan dapat mengisi form chat otomatis. Hindari menyimpan credential di perangkat bersama.</span>
+      </p>
+      <form class="key-create-form" id="key-create-form">
+        <div class="key-name-field">
+          <label for="key-name"><i class="fa-solid fa-tag"></i> Nama API key</label>
+          <input id="key-name" name="name" type="text" maxlength="80" required placeholder="Contoh: Aplikasi produksi">
+        </div>
+        <button class="key-create-button" id="key-create-button" type="submit">
+          <i class="fa-solid fa-plus"></i> Buat API key
+        </button>
+      </form>
+      <p class="key-message" id="key-message" role="status" aria-live="polite"></p>
+      <div class="new-key-notice" id="new-key-notice" role="status" aria-live="polite" hidden>
+        <p class="new-key-title"><i class="fa-solid fa-circle-check"></i> API key berhasil dibuat</p>
+        <p class="new-key-help">Key ini juga disimpan di localStorage browser untuk mengisi form chat otomatis. Salin dan simpan di tempat aman; hindari perangkat bersama.</p>
+        <div class="new-key-value">
+          <code id="new-key-value"></code>
+          <button class="copy-button" id="copy-new-key" type="button"><i class="fa-regular fa-copy"></i> Salin key</button>
+        </div>
+      </div>
+      <ul class="key-list" id="key-list" aria-label="Daftar API keys"></ul>
+    </section>
+
+    <div class="section-heading">
+      <h2><i class="fa-solid fa-plug" style="margin-right:6px;color:#2563eb;"></i> Endpoints</h2>
+    </div>
+    <div class="method-tabs" role="tablist" aria-label="Metode HTTP">
+      <button class="method-tab" type="button" role="tab" id="get-tab" data-method="GET" aria-controls="get-panel" aria-selected="true">
+        <i class="fa-solid fa-download"></i> GET
+      </button>
+    </div>
+    <section class="method-panel" id="get-panel" role="tabpanel" aria-labelledby="get-tab">
+      <div class="endpoint-list" id="endpoint-list-get" aria-label="GET endpoints"></div>
+    </section>
+
+    <section class="examples" aria-labelledby="examples-title">
+      <h2 id="examples-title"><i class="fa-solid fa-book-open" style="margin-right:6px;color:#7c3aed;"></i> Contoh penggunaan API</h2>
+      <p class="examples-intro">Semua route yang berinteraksi dengan model atau mengelola API key membutuhkan credential. Status layanan dapat diakses tanpa key. Gunakan API key pada header agar tidak bocor ke access log URL.</p>
+      <div class="example-tabs" role="tablist" aria-label="Bahasa contoh">
+        <button class="example-tab" type="button" role="tab" id="tab-node" aria-controls="example-node" aria-selected="true">
+          <i class="fa-brands fa-node-js"></i> Node.js backend
+        </button>
+        <button class="example-tab" type="button" role="tab" id="tab-browser" aria-controls="example-browser" aria-selected="false">
+          <i class="fa-brands fa-js"></i> JavaScript fetch
+        </button>
+        <button class="example-tab" type="button" role="tab" id="tab-python" aria-controls="example-python" aria-selected="false">
+          <i class="fa-brands fa-python"></i> Python
+        </button>
+        <button class="example-tab" type="button" role="tab" id="tab-curl" aria-controls="example-curl" aria-selected="false">
+          <i class="fa-solid fa-terminal"></i> cURL
+        </button>
+      </div>
+      <article class="example-panel" id="example-node" role="tabpanel" aria-labelledby="tab-node">
+        <h3>Node.js backend (Express)</h3>
+        <p>Simpan key di environment server, jangan kirim master/key dari frontend publik.</p>
+        <pre class="example-code language-javascript"><code>import express from "express";
+
+const app = express();
+app.use(express.json());
+
+app.post("/ask", async (req, res) =&gt; {
+  const response = await fetch("http://localhost:8000/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": process.env.ZYDRA_API_KEY
+    },
+    body: JSON.stringify({
+      model: "zydra-luRa",
+      messages: [{ role: "user", content: req.body.prompt }]
+    })
+  });
+  res.status(response.status).json(await response.json());
+});
+
+app.listen(3000);</code></pre>
+      </article>
+      <article class="example-panel" id="example-browser" role="tabpanel" aria-labelledby="tab-browser" hidden>
+        <h3>JavaScript fetch</h3>
+        <p>Gunakan API key yang dibuat dari UI. Untuk aplikasi browser publik, panggil backend milikmu agar key tidak terekspos.</p>
+        <pre class="example-code language-javascript"><code>const response = await fetch("http://localhost:8000/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-API-Key": apiKey
+  },
+  body: JSON.stringify({
+    model: "zydra-luRa",
+    messages: [{ role: "user", content: "Jelaskan fotosintesis secara singkat." }]
+  })
+});
+
+const result = await response.json();
+console.log(result.choices[0].message.content);</code></pre>
+      </article>
+      <article class="example-panel" id="example-python" role="tabpanel" aria-labelledby="tab-python" hidden>
+        <h3>Python backend</h3>
+        <pre class="example-code"><code>import os
+import requests
+
+response = requests.post(
+    "http://localhost:8000/v1/chat/completions",
+    headers={"X-API-Key": os.environ["ZYDRA_API_KEY"]},
+    json={
+        "model": "zydra-luRa",
+        "messages": [{"role": "user", "content": "Jelaskan fotosintesis secara singkat."}],
+    },
+    timeout=120,
+)
+response.raise_for_status()
+print(response.json()["choices"][0]["message"]["content"])</code></pre>
+      </article>
+      <article class="example-panel" id="example-curl" role="tabpanel" aria-labelledby="tab-curl" hidden>
+        <h3>cURL</h3>
+        <pre class="example-code"><code>curl http://localhost:8000/v1/chat/completions \
+  -H "X-API-Key: $ZYDRA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"zydra-luRa","messages":[{"role":"user","content":"Jelaskan fotosintesis secara singkat."}]}'</code></pre>
+      </article>
+    </section>
+    </section>
+  </main>
+  <footer class="shell">
+    <span><i class="fa-regular fa-copyright"></i> <span id="year"></span> Zydra API</span>
+    <span>Dikembangkan oleh <a href="https://fareldev.biz.id" target="_blank" rel="noopener noreferrer">Fareldev</a></span>
+  </footer>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.3/dist/sweetalert2.all.min.js"
+    integrity="sha384-BX77tysPwMmjY87hyuYr8cUvUQiHJMvAjLu9iWF4Ls6HQLzalVw0fm/Ez1VwzAv7"
+    crossorigin="anonymous"></script>
+  <script>
+    const endpointDefinitions = [
+      { id: "health", method: "GET", path: "/health", title: "Status layanan dan kesiapan model", auth: false, fields: [] },
+      { id: "status", method: "GET", path: "/status", title: "Detail status pemuatan model", auth: false, fields: [] },
+      { id: "ready", method: "GET", path: "/ready", title: "Periksa apakah model siap menerima request", auth: false, fields: [] },
+      { id: "models", method: "GET", path: "/v1/models", title: "Daftar model yang tersedia", auth: true, fields: [] },
+      { id: "prompt-get", method: "GET", path: "/v1/prompt", title: "Prompt melalui query string", auth: true, fields: [
+        { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi; dikirim sebagai parameter apikey pada URL." },
+        { name: "prompt", label: "prompt", type: "textarea", required: true, value: "Siapa namamu dan siapa pembuatmu?", note: "Prompt dikirim sebagai parameter query. Untuk keamanan, gunakan header X-API-Key bila memungkinkan." },
+      ] },
+      { id: "vision-get", method: "GET", path: "/v1/chat/vision", title: "Chat dengan gambar", auth: true, fields: [
+        { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi; dikirim melalui header X-API-Key." },
+        { name: "model", label: "model", type: "text", value: "zydra-luRa", readonly: true, note: "Model layanan yang digunakan." },
+        { name: "image_link", label: "image_link", type: "text", required: true, value: "", placeholder: "https://example.com/gambar.jpg", note: "URL publik langsung ke gambar JPEG, PNG, atau WebP (maksimal 10 MB)." },
+        { name: "caption", label: "caption", type: "textarea", required: false, value: "Jelaskan isi gambar ini.", note: "Pertanyaan atau instruksi tentang gambar." },
+        { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "256", step: "1", min: "1" },
+        { name: "stream", label: "stream", type: "checkbox", value: false, note: "Response streaming dikirim sebagai Server-Sent Events." },
+      ] },
+    ];
+
+    const appShell = document.getElementById("app-shell");
+    const endpointLists = {
+      GET: document.getElementById("endpoint-list-get"),
+    };
+    const keyList = document.getElementById("key-list");
+    const keyMessage = document.getElementById("key-message");
+    const keyCount = document.getElementById("key-count");
+    const keyCreateForm = document.getElementById("key-create-form");
+    const keyCreateButton = document.getElementById("key-create-button");
+    const newKeyNotice = document.getElementById("new-key-notice");
+    const newKeyValue = document.getElementById("new-key-value");
+    const copyNewKeyButton = document.getElementById("copy-new-key");
+    const chatForm = document.getElementById("chat-form");
+    const chatInput = document.getElementById("chat-input");
+    const chatSendButton = document.getElementById("chat-send");
+    const chatMessagesContainer = document.getElementById("chat-transcript");
+    const chatStatus = document.getElementById("chat-status");
+    const AUTH_STORAGE_KEY = "zydra.auth";
+    const API_KEY_STORAGE_KEY = "zydra.apiKey";
+    let apiCredential = "";
+    let activeApiKeys = [];
+    const chatMessages = [];
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    function readStoredCredential(key) {
+      try {
+        return localStorage.getItem(key) || "";
+      } catch {
+        setKeyMessage("Browser tidak mengizinkan akses localStorage; credential tidak dapat dipulihkan otomatis.", true);
+        return "";
+      }
+    }
+
+    function saveCredential(key, value, label) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch {
+        setKeyMessage(`${label} tidak dapat disimpan di localStorage browser.`, true);
+        return false;
+      }
+    }
+
+    function removeStoredCredential(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        setKeyMessage("Credential tidak dapat dihapus dari localStorage browser.", true);
+      }
+    }
+
+    function setApiKeyFields(value) {
+      document.querySelectorAll('input[name="apikey"]').forEach((input) => {
+        input.value = value;
+      });
+    }
+
+    async function requestCredential() {
+      const savedCredential = readStoredCredential(AUTH_STORAGE_KEY);
+      if (savedCredential) {
+        apiCredential = savedCredential;
+        try {
+          const response = await fetch("/v1/api-keys", {
+            headers: { "X-API-Key": apiCredential },
+          });
+          if (response.status === 401) {
+            removeStoredCredential(AUTH_STORAGE_KEY);
+            apiCredential = "";
+          } else {
+            if (!response.ok) {
+              throw new Error(`Gagal memverifikasi AUTH (HTTP ${response.status}).`);
+            }
+            const payload = await response.json();
+            if (!Array.isArray(payload.data)) {
+              throw new Error("Format daftar API key dari server tidak valid.");
+            }
+            appShell.hidden = false;
+            renderApiKeys(payload.data);
+            setKeyMessage("");
+            setApiKeyFields(readStoredCredential(API_KEY_STORAGE_KEY));
+            return;
+          }
+        } catch (error) {
+          appShell.hidden = false;
+          setApiKeyFields(readStoredCredential(API_KEY_STORAGE_KEY));
+          setKeyMessage(`Gagal memulihkan sesi: ${error.message}`, true, true);
+          return;
+        }
+      }
+
+      if (typeof Swal === "undefined") {
+        window.alert("SweetAlert tidak dapat dimuat. Muat ulang halaman untuk mencoba kembali.");
+        return;
+      }
+
+      await Swal.fire({
+        title: "Autentikasi diperlukan",
+        text: "Masukkan nilai auth",
+        input: "password",
+        inputPlaceholder: "Password",
+        inputAttributes: { autocomplete: "current-password", autocapitalize: "off", spellcheck: "false" },
+        confirmButtonText: "Verifikasi dan masuk",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showLoaderOnConfirm: true,
+        preConfirm: async (value) => {
+          const credential = value?.trim();
+          if (!credential) {
+            Swal.showValidationMessage("AUTH wajib diisi.");
+            return false;
+          }
+          try {
+            const response = await fetch("/v1/api-keys", {
+              headers: { "X-API-Key": credential },
+            });
+            if (response.status === 401) {
+              Swal.showValidationMessage("AUTH salah. Akses ditolak.");
+              return false;
+            }
+            if (!response.ok) {
+              Swal.showValidationMessage(`Gagal memverifikasi AUTH (HTTP ${response.status}).`);
+              return false;
+            }
+            return credential;
+          } catch {
+            Swal.showValidationMessage("Server tidak dapat dijangkau. Periksa koneksi lalu coba lagi.");
+            return false;
+          }
+        },
+      }).then(async (result) => {
+        if (result.isConfirmed && result.value) {
+          apiCredential = result.value;
+          const credentialSaved = saveCredential(AUTH_STORAGE_KEY, apiCredential, "AUTH");
+          appShell.hidden = false;
+          setApiKeyFields(readStoredCredential(API_KEY_STORAGE_KEY));
+          const keysLoaded = await loadApiKeys();
+          if (!credentialSaved) {
+            setKeyMessage("Sesi aktif, tetapi AUTH tidak tersimpan di browser. Password akan diminta lagi setelah halaman dimuat ulang.", true);
+          } else if (!keysLoaded) {
+            return;
+          }
+        }
+      });
+    }
+
+    async function apiKeyRequest(path, options = {}) {
+      const response = await fetch(path, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          "X-API-Key": apiCredential,
+        },
+      });
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch {
+        if (response.ok) throw new Error("Server mengirim response yang tidak valid.");
+      }
+      if (!response.ok) {
+        throw new Error(payload.detail || `Request gagal (HTTP ${response.status}).`);
+      }
+      return payload;
+    }
+
+    function setKeyMessage(message, isError = false, retry = false) {
+      keyMessage.replaceChildren(document.createTextNode(message));
+      keyMessage.dataset.error = String(isError);
+      if (retry) {
+        const retryButton = document.createElement("button");
+        retryButton.className = "key-retry-button";
+        retryButton.type = "button";
+        retryButton.textContent = "Coba lagi";
+        retryButton.addEventListener("click", loadApiKeys);
+        keyMessage.append(retryButton);
+      }
+    }
+
+    function renderApiKeys(records) {
+      activeApiKeys = records;
+      keyCount.textContent = `${records.length} ${records.length === 1 ? "API key" : "API keys"}`;
+      keyList.replaceChildren();
+      if (records.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "key-details";
+        empty.style.padding = "10px 0";
+        empty.textContent = "Belum ada API key. Buat key pertama menggunakan formulir di atas.";
+        keyList.append(empty);
+        return;
+      }
+
+      for (const record of records) {
+        const item = document.createElement("li");
+        item.className = "key-item";
+        const info = document.createElement("div");
+        info.className = "key-info";
+        const icon = document.createElement("div");
+        icon.className = "key-icon";
+        icon.innerHTML = '<i class="fa-solid fa-key"></i>';
+        const textWrap = document.createElement("div");
+        const name = document.createElement("span");
+        name.className = "key-name";
+        name.textContent = record.name;
+        const details = document.createElement("span");
+        details.className = "key-details";
+        const prefix = document.createElement("span");
+        prefix.className = "key-prefix";
+        prefix.textContent = record.prefix;
+        const createdDate = new Date(record.created_at);
+        const created = document.createElement("span");
+        created.textContent = `Dibuat ${Number.isNaN(createdDate.getTime()) ? record.created_at : createdDate.toLocaleString("id-ID")}`;
+        details.append(prefix, created);
+        textWrap.append(name, details);
+        info.append(icon, textWrap);
+
+        const actions = document.createElement("div");
+        actions.className = "key-item-actions";
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "key-delete-button";
+        deleteButton.type = "button";
+        deleteButton.innerHTML = '<i class="fa-regular fa-trash-can"></i> Hapus';
+        deleteButton.setAttribute("aria-label", `Hapus API key ${record.name}`);
+        deleteButton.addEventListener("click", () => deleteApiKey(record, deleteButton));
+        actions.append(deleteButton);
+        item.append(info, actions);
+        keyList.append(item);
+      }
+    }
+
+    async function loadApiKeys() {
+      setKeyMessage("Memuat API keys...");
+      try {
+        const payload = await apiKeyRequest("/v1/api-keys");
+        if (!Array.isArray(payload.data)) throw new Error("Format daftar API key dari server tidak valid.");
+        renderApiKeys(payload.data);
+        setKeyMessage("");
+        return true;
+      } catch (error) {
+        setKeyMessage(`Gagal memuat API keys: ${error.message}`, true, true);
+        return false;
+      }
+    }
+
+    keyCreateForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const name = keyCreateForm.elements.namedItem("name").value.trim();
+      if (!name) {
+        setKeyMessage("Nama API key wajib diisi.", true);
+        return;
+      }
+      keyCreateButton.disabled = true;
+      keyCreateButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membuat...';
+      try {
+        const payload = await apiKeyRequest("/v1/api-keys", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (!payload.api_key || !payload.key) throw new Error("Server tidak mengembalikan API key yang baru dibuat.");
+        const apiKeySaved = saveCredential(API_KEY_STORAGE_KEY, payload.api_key, "API key");
+        setApiKeyFields(payload.api_key);
+        newKeyValue.textContent = payload.api_key;
+        newKeyNotice.hidden = false;
+        keyCreateForm.reset();
+        const refreshed = await loadApiKeys();
+        if (!apiKeySaved) {
+          setKeyMessage(`API key "${payload.key.name}" berhasil dibuat, tetapi tidak dapat disimpan di browser.`, true);
+        } else if (refreshed) {
+          setKeyMessage(`API key "${payload.key.name}" berhasil dibuat.`);
+        }
+      } catch (error) {
+        setKeyMessage(`Gagal membuat API key: ${error.message}`, true);
+      } finally {
+        keyCreateButton.disabled = false;
+        keyCreateButton.innerHTML = '<i class="fa-solid fa-plus"></i> Buat API key';
+      }
+    });
+
+    copyNewKeyButton.addEventListener("click", async () => {
+      try {
+        await copyCode(newKeyValue.textContent);
+        copyNewKeyButton.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin';
+      } catch (error) {
+        setKeyMessage(`Gagal menyalin API key: ${error.message}`, true);
+      }
+      setTimeout(() => { copyNewKeyButton.innerHTML = '<i class="fa-regular fa-copy"></i> Salin key'; }, 1500);
+    });
+
+    async function deleteApiKey(record, button) {
+      const confirmed = typeof Swal !== "undefined"
+        ? (await Swal.fire({
+          title: "Hapus API key?",
+          text: `Key "${record.name}" tidak dapat digunakan lagi setelah dihapus.`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Ya, hapus",
+          cancelButtonText: "Batal",
+          confirmButtonColor: "#dc2626",
+        })).isConfirmed
+        : window.confirm(`Hapus API key "${record.name}"?`);
+      if (!confirmed) return;
+
+      button.disabled = true;
+      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      try {
+        await apiKeyRequest(`/v1/api-keys/${encodeURIComponent(record.id)}`, { method: "DELETE" });
+        renderApiKeys(activeApiKeys.filter((key) => key.id !== record.id));
+        const savedApiKey = readStoredCredential(API_KEY_STORAGE_KEY);
+        if (savedApiKey && savedApiKey.startsWith(record.prefix)) {
+          removeStoredCredential(API_KEY_STORAGE_KEY);
+          setApiKeyFields("");
+        }
+        setKeyMessage(`API key "${record.name}" berhasil dihapus.`);
+      } catch (error) {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-regular fa-trash-can"></i> Hapus';
+        setKeyMessage(`Gagal menghapus API key: ${error.message}`, true);
+      }
+    }
+
+    function appendMarkdownInline(container, text) {
+      const inlinePattern = /`([^`]+)`|\*\*([^*]+)\*\*|__([^_]+)__|\*([^*\n]+)\*|_([^_\n]+)_|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+      let previousIndex = 0;
+      for (const match of text.matchAll(inlinePattern)) {
+        container.append(document.createTextNode(text.slice(previousIndex, match.index)));
+        if (match[1] !== undefined) {
+          const code = document.createElement("code");
+          code.textContent = match[1];
+          container.append(code);
+        } else if (match[2] !== undefined || match[3] !== undefined) {
+          const strong = document.createElement("strong");
+          strong.textContent = match[2] ?? match[3];
+          container.append(strong);
+        } else if (match[4] !== undefined || match[5] !== undefined) {
+          const emphasis = document.createElement("em");
+          emphasis.textContent = match[4] ?? match[5];
+          container.append(emphasis);
+        } else {
+          const link = document.createElement("a");
+          link.href = match[7];
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = match[6];
+          container.append(link);
+        }
+        previousIndex = match.index + match[0].length;
+      }
+      container.append(document.createTextNode(text.slice(previousIndex)));
+    }
+
+    function renderMarkdown(container, markdown) {
+      container.replaceChildren();
+      const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+      let index = 0;
+      while (index < lines.length) {
+        const line = lines[index];
+        if (!line.trim()) {
+          index += 1;
+          continue;
+        }
+        if (/^\s*```/.test(line)) {
+          index += 1;
+          const codeLines = [];
+          while (index < lines.length && !/^\s*```/.test(lines[index])) {
+            codeLines.push(lines[index]);
+            index += 1;
+          }
+          if (index < lines.length) index += 1;
+          const pre = document.createElement("pre");
+          const code = document.createElement("code");
+          code.textContent = codeLines.join("\n");
+          pre.append(code);
+          container.append(pre);
+          continue;
+        }
+        const heading = line.match(/^\s{0,3}(#{1,4})\s+(.+?)\s*#*\s*$/);
+        if (heading) {
+          const element = document.createElement(`h${heading[1].length}`);
+          appendMarkdownInline(element, heading[2]);
+          container.append(element);
+          index += 1;
+          continue;
+        }
+        if (/^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+          container.append(document.createElement("hr"));
+          index += 1;
+          continue;
+        }
+        if (/^\s*>\s?/.test(line)) {
+          const quote = document.createElement("blockquote");
+          while (index < lines.length && /^\s*>\s?/.test(lines[index])) {
+            const paragraph = document.createElement("p");
+            appendMarkdownInline(paragraph, lines[index].replace(/^\s*>\s?/, ""));
+            quote.append(paragraph);
+            index += 1;
+          }
+          container.append(quote);
+          continue;
+        }
+        const listMatch = line.match(/^\s*(?:[-*+]|\d+[.)])\s+(.+)$/);
+        if (listMatch) {
+          const ordered = /^\s*\d/.test(line);
+          const list = document.createElement(ordered ? "ol" : "ul");
+          while (index < lines.length) {
+            const item = lines[index].match(/^\s*(?:[-*+]|\d+[.)])\s+(.+)$/);
+            if (!item || /^\s*\d/.test(lines[index]) !== ordered) break;
+            const listItem = document.createElement("li");
+            appendMarkdownInline(listItem, item[1]);
+            list.append(listItem);
+            index += 1;
+          }
+          container.append(list);
+          continue;
+        }
+        const paragraphLines = [];
+        while (index < lines.length && lines[index].trim()
+          && !/^\s*```/.test(lines[index])
+          && !/^\s{0,3}#{1,4}\s/.test(lines[index])
+          && !/^\s*>\s?/.test(lines[index])
+          && !/^\s*(?:[-*+]|\d+[.)])\s+/.test(lines[index])
+          && !/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(lines[index])) {
+          paragraphLines.push(lines[index]);
+          index += 1;
+        }
+        const paragraph = document.createElement("p");
+        appendMarkdownInline(paragraph, paragraphLines.join(" "));
+        container.append(paragraph);
+      }
+    }
+
+    function renderChatMessages() {
+      chatMessagesContainer.replaceChildren();
+      if (chatMessages.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "chat-empty";
+        empty.innerHTML = '<i class="fa-regular fa-message"></i>Mulai percakapan dengan mengirim pesan di bawah.';
+        chatMessagesContainer.append(empty);
+        return;
+      }
+      for (const message of chatMessages) {
+        const item = document.createElement("article");
+        item.className = "chat-message";
+        item.dataset.role = message.role;
+        const role = document.createElement("span");
+        role.className = "chat-role";
+        role.innerHTML = message.role === "user"
+          ? '<i class="fa-regular fa-user"></i> Kamu'
+          : '<i class="fa-solid fa-robot"></i> Zydra';
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble";
+        renderMarkdown(bubble, message.content);
+        item.append(role, bubble);
+        chatMessagesContainer.append(item);
+      }
+      chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+    }
+
+    chatForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const message = chatInput.value.trim();
+      if (!message || chatSendButton.disabled) return;
+      chatMessages.push({ role: "user", content: message });
+      renderChatMessages();
+      chatInput.value = "";
+      chatSendButton.disabled = true;
+      chatSendButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+      chatStatus.dataset.error = "false";
+      chatStatus.textContent = "Zydra sedang menyiapkan jawaban...";
+      try {
+        const response = await fetch("/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": apiCredential,
+          },
+          body: JSON.stringify({
+            model: "zydra-luRa",
+            messages: chatMessages,
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || `Request gagal (HTTP ${response.status}).`);
+        const answer = payload.choices?.[0]?.message?.content;
+        if (typeof answer !== "string" || !answer) {
+          throw new Error("Respons model tidak berisi jawaban yang valid.");
+        }
+        chatMessages.push({ role: "assistant", content: answer });
+        renderChatMessages();
+        chatStatus.textContent = "";
+      } catch (error) {
+        chatMessages.pop();
+        renderChatMessages();
+        chatInput.value = message;
+        chatStatus.dataset.error = "true";
+        chatStatus.textContent = `Gagal mengirim pesan: ${error.message}`;
+      } finally {
+        chatSendButton.disabled = false;
+        chatSendButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim';
+        chatInput.focus();
+      }
+    });
+
+    chatInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+        event.preventDefault();
+        chatForm.requestSubmit();
+      }
+    });
+
+    function addField(grid, definition, endpointId) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `field${definition.type === "textarea" || definition.type === "json" ? " full" : ""}`;
+      const id = `${endpointId}-${definition.name.replaceAll("_", "-")}`;
+      if (definition.type === "checkbox") {
+        const row = document.createElement("div");
+        row.className = "field-checkbox";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.id = id;
+        input.name = definition.name;
+        input.checked = Boolean(definition.value);
+        const label = document.createElement("label");
+        label.htmlFor = id;
+        label.textContent = definition.label;
+        row.append(input, label);
+        if (definition.note) {
+          const note = document.createElement("small");
+          note.className = "field-note";
+          note.textContent = definition.note;
+          row.append(note);
+        }
+        wrapper.append(row);
+        grid.append(wrapper);
+        return;
+      }
+
+      const label = document.createElement("label");
+      label.htmlFor = id;
+      label.textContent = `${definition.label}${definition.optional ? " (optional)" : definition.required ? " *" : ""}`;
+      wrapper.append(label);
+
+      let input;
+      if (definition.type === "textarea" || definition.type === "json") {
+        input = document.createElement("textarea");
+        input.spellcheck = false;
+      } else {
+        input = document.createElement("input");
+        input.type = definition.type;
+      }
+      input.id = id;
+      input.name = definition.name;
+      if (definition.readonly) input.readOnly = true;
+      input.value = definition.value ?? "";
+      if (definition.required) input.required = true;
+      if (definition.placeholder) input.placeholder = definition.placeholder;
+      if (definition.step) input.step = definition.step;
+      if (definition.min) input.min = definition.min;
+      if (definition.max) input.max = definition.max;
+      wrapper.append(input);
+
+      if (definition.toggleVisibility) {
+        const toggleRow = document.createElement("div");
+        toggleRow.className = "field-checkbox visibility-toggle";
+        const toggle = document.createElement("input");
+        toggle.type = "checkbox";
+        toggle.id = `${id}-visibility`;
+        const toggleLabel = document.createElement("label");
+        toggleLabel.htmlFor = toggle.id;
+        toggleLabel.textContent = "Tampilkan API key";
+        toggle.addEventListener("change", () => {
+          input.type = toggle.checked ? "text" : "password";
+        });
+        toggleRow.append(toggle, toggleLabel);
+        wrapper.append(toggleRow);
+      }
+
+      if (definition.note) {
+        const note = document.createElement("small");
+        note.className = "field-note";
+        note.textContent = definition.note;
+        wrapper.append(note);
+      }
+      grid.append(wrapper);
+    }
+
+    function formatResponse(raw) {
+      try {
+        return JSON.stringify(JSON.parse(raw), null, 2);
+      } catch {
+        return raw || "(response kosong)";
+      }
+    }
+
+    function highlightJson(code, value) {
+      const escapeHtml = (text) => text.replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]);
+      const tokenPattern = /("(?:\\.|[^"\\])*"(?:\s*:)?|-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b|\b(?:true|false|null)\b)/g;
+      let highlighted = "";
+      let previousIndex = 0;
+      for (const match of value.matchAll(tokenPattern)) {
+        const token = match[0];
+        const start = match.index;
+        const className = token.startsWith('"')
+          ? token.trimEnd().endsWith(":") ? "json-key" : "json-string"
+          : /^(?:true|false|null)$/.test(token) ? "json-boolean" : "json-number";
+        highlighted += escapeHtml(value.slice(previousIndex, start));
+        highlighted += `<span class="${className}">${escapeHtml(token)}</span>`;
+        previousIndex = start + token.length;
+      }
+      highlighted += escapeHtml(value.slice(previousIndex));
+      code.innerHTML = highlighted;
+    }
+
+    function highlightJavaScript(code) {
+      const source = code.textContent;
+      const tokens = /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:async|await|break|case|catch|class|const|continue|default|else|export|extends|false|finally|for|from|function|if|import|in|let|new|null|of|return|static|throw|true|try|undefined|var|while)\b|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*(?=\s*\()/g;
+      let output = "";
+      let previousIndex = 0;
+      for (const match of source.matchAll(tokens)) {
+        const token = match[0];
+        const start = match.index;
+        const className = token.startsWith("//") || token.startsWith("/*")
+          ? "code-token-comment"
+          : /^["'`]/.test(token)
+            ? "code-token-string"
+            : /^(?:async|await|break|case|catch|class|const|continue|default|else|export|extends|for|from|function|if|import|in|let|new|of|return|static|throw|try|var|while)$/.test(token)
+              ? "code-token-keyword"
+              : /^(?:false|null|true|undefined)$/.test(token)
+                ? "code-token-literal"
+                : /^\d/.test(token)
+                  ? "code-token-number"
+                  : "code-token-function";
+        output += escapeCodeHtml(source.slice(previousIndex, start));
+        output += `<span class="${className}">${escapeCodeHtml(token)}</span>`;
+        previousIndex = start + token.length;
+      }
+      output += escapeCodeHtml(source.slice(previousIndex));
+      code.innerHTML = output;
+    }
+
+    function escapeCodeHtml(value) {
+      return value.replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]);
+    }
+
+    async function copyCode(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const temporary = document.createElement("textarea");
+      temporary.value = text;
+      temporary.style.position = "fixed";
+      temporary.style.opacity = "0";
+      document.body.append(temporary);
+      temporary.select();
+      const copied = document.execCommand("copy");
+      temporary.remove();
+      if (!copied) throw new Error("Clipboard tidak tersedia.");
+    }
+
+    function setupCodeExamples() {
+      document.querySelectorAll(".example-code").forEach((pre) => {
+        const code = pre.querySelector("code");
+        if (!code) return;
+        const source = code.textContent;
+        if (pre.classList.contains("language-javascript")) highlightJavaScript(code);
+
+        const toolbar = document.createElement("div");
+        toolbar.className = "code-toolbar";
+        const language = document.createElement("span");
+        let langIcon = "";
+        if (pre.classList.contains("language-javascript")) {
+          language.textContent = "JavaScript";
+          langIcon = '<i class="fa-brands fa-js" style="margin-right:4px;"></i>';
+        } else if (pre.closest("#example-python")) {
+          language.textContent = "Python";
+          langIcon = '<i class="fa-brands fa-python" style="margin-right:4px;"></i>';
+        } else {
+          language.textContent = "cURL";
+          langIcon = '<i class="fa-solid fa-terminal" style="margin-right:4px;"></i>';
+        }
+        language.innerHTML = langIcon + language.textContent;
+        const copy = document.createElement("button");
+        copy.className = "copy-example-button";
+        copy.type = "button";
+        copy.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
+        copy.addEventListener("click", async () => {
+          try {
+            await copyCode(source);
+            copy.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
+          } catch {
+            copy.innerHTML = '<i class="fa-solid fa-xmark"></i> Copy gagal';
+          }
+          setTimeout(() => { copy.innerHTML = '<i class="fa-regular fa-copy"></i> Copy'; }, 1500);
+        });
+        toolbar.append(language, copy);
+        pre.before(toolbar);
+      });
+    }
+
+    function addResponse(container, response, statusText, ok, elapsed) {
+      container.replaceChildren();
+      const box = document.createElement("section");
+      box.className = "response";
+      const head = document.createElement("div");
+      head.className = "response-head";
+      const status = document.createElement("span");
+      status.className = "response-status";
+      status.dataset.ok = String(ok);
+      status.innerHTML = (ok ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-xmark"></i>') + ` ${statusText} · ${elapsed} ms`;
+      const copy = document.createElement("button");
+      copy.className = "copy-button";
+      copy.type = "button";
+      copy.innerHTML = '<i class="fa-regular fa-copy"></i> Salin';
+      copy.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(response);
+        copy.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin';
+        setTimeout(() => { copy.innerHTML = '<i class="fa-regular fa-copy"></i> Salin'; }, 1200);
+      });
+      const output = document.createElement("pre");
+      const code = document.createElement("code");
+      highlightJson(code, response);
+      output.append(code);
+      head.append(status, copy);
+      box.append(head, output);
+      container.append(box);
+    }
+
+    function buildPayload(endpoint, form) {
+      const payload = {};
+      for (const field of endpoint.fields) {
+        const input = form.elements.namedItem(field.name);
+        if (field.type === "checkbox") {
+          payload[field.name] = input.checked;
+          continue;
+        }
+        const value = input.value.trim();
+        if (!value) {
+          if (field.required) throw new Error(`${field.label} wajib diisi.`);
+          continue;
+        }
+        if (field.type === "json") {
+          try {
+            payload[field.name] = JSON.parse(value);
+          } catch {
+            throw new Error(`${field.label} harus berisi JSON yang valid.`);
+          }
+        } else if (field.type === "number") {
+          payload[field.name] = Number(value);
+        } else {
+          payload[field.name] = value;
+        }
+      }
+      return payload;
+    }
+
+    function createEndpoint(endpoint) {
+      const article = document.createElement("article");
+      article.className = "endpoint";
+      const top = document.createElement("div");
+      top.className = "endpoint-top";
+      const info = document.createElement("div");
+      info.className = "route-info";
+      const method = document.createElement("span");
+      method.className = `method ${endpoint.method.toLowerCase()}`;
+      method.textContent = endpoint.method;
+      const path = document.createElement("code");
+      path.textContent = endpoint.path;
+      const description = document.createElement("span");
+      description.className = "route-desc";
+      description.textContent = endpoint.title;
+      const auth = document.createElement("span");
+      auth.className = "auth-badge";
+      auth.innerHTML = endpoint.admin
+        ? '<i class="fa-solid fa-shield-halved"></i> AUTH master'
+        : endpoint.auth
+          ? '<i class="fa-solid fa-lock"></i> API key'
+          : '<i class="fa-solid fa-lock-open"></i> No auth';
+      info.append(method, path, description, auth);
+
+      const tryButton = document.createElement("button");
+      tryButton.className = "try-button";
+      tryButton.type = "button";
+      tryButton.innerHTML = '<i class="fa-solid fa-play"></i> Try it out';
+      const endpointActions = document.createElement("div");
+      endpointActions.className = "endpoint-actions";
+      endpointActions.append(tryButton);
+      top.append(info, endpointActions);
+
+      const area = document.createElement("div");
+      area.className = "try-area";
+      area.hidden = true;
+      const form = document.createElement("form");
+      form.noValidate = true;
+      const preview = document.createElement("p");
+      preview.className = "path-preview";
+      preview.innerHTML = '<i class="fa-solid fa-globe"></i> Request URL: <code>' + window.location.origin + endpoint.path + '</code>';
+      const fields = document.createElement("div");
+      fields.className = "field-grid";
+      endpoint.fields.forEach((field) => addField(fields, field, endpoint.id));
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const execute = document.createElement("button");
+      execute.className = "execute-button";
+      execute.type = "submit";
+      execute.innerHTML = '<i class="fa-solid fa-bolt"></i> Execute';
+      const cancel = document.createElement("button");
+      cancel.className = "cancel-button";
+      cancel.type = "button";
+      cancel.innerHTML = '<i class="fa-solid fa-xmark"></i> Cancel';
+      actions.append(execute, cancel);
+      const responseContainer = document.createElement("div");
+      form.append(preview, fields, actions, responseContainer);
+      area.append(form);
+      article.append(top, area);
+      endpointLists[endpoint.method].append(article);
+
+      tryButton.addEventListener("click", () => {
+        area.hidden = false;
+        tryButton.style.display = "none";
+      });
+      cancel.addEventListener("click", () => {
+        area.hidden = true;
+        tryButton.style.display = "";
+      });
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        let url = endpoint.path;
+        let payload;
+        try {
+          payload = buildPayload(endpoint, form);
+          if (endpoint.method === "GET") {
+            const queryPayload = { ...payload };
+            delete queryPayload.apikey;
+            const query = new URLSearchParams(queryPayload);
+            if (query.size > 0) url = `${endpoint.path}?${query.toString()}`;
+          }
+        } catch (error) {
+          addResponse(responseContainer, JSON.stringify({ error: error.message }, null, 2), "Input tidak valid", false, 0);
+          return;
+        }
+        preview.innerHTML = '<i class="fa-solid fa-globe"></i> Request URL: <code>' + window.location.origin + url + '</code>';
+        execute.disabled = true;
+        execute.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+        const headers = {};
+        const keyField = endpoint.fields.find((field) => field.name === "apikey");
+        const requestApiKey = keyField ? payload.apikey : apiCredential;
+        if (requestApiKey) headers["X-API-Key"] = requestApiKey;
+        const options = { method: endpoint.method, headers };
+        if (endpoint.method === "POST") {
+          headers["Content-Type"] = "application/json";
+          options.body = JSON.stringify(payload);
+        }
+        const started = performance.now();
+        try {
+          const response = await fetch(url, options);
+          if (keyField) {
+            if (response.ok) {
+              saveCredential(API_KEY_STORAGE_KEY, requestApiKey, "API key");
+            } else if (
+              response.status === 401 &&
+              requestApiKey === readStoredCredential(API_KEY_STORAGE_KEY)
+            ) {
+              removeStoredCredential(API_KEY_STORAGE_KEY);
+              setApiKeyFields("");
+              setKeyMessage("API key yang tersimpan ditolak. Field API key dikosongkan; masukkan API key yang valid.", true);
+            }
+          }
+          const raw = await response.text();
+          addResponse(responseContainer, formatResponse(raw), `HTTP ${response.status} ${response.statusText}`, response.ok, Math.round(performance.now() - started));
+        } catch (error) {
+          addResponse(responseContainer, JSON.stringify({ error: error.message }, null, 2), "Request gagal", false, Math.round(performance.now() - started));
+        } finally {
+          execute.disabled = false;
+          execute.innerHTML = '<i class="fa-solid fa-bolt"></i> Execute';
+        }
+      });
+    }
+
+    endpointDefinitions.forEach(createEndpoint);
+    setupCodeExamples();
+    document.querySelectorAll(".view-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".view-tab").forEach((item) => {
+          item.setAttribute("aria-selected", String(item === tab));
+        });
+        document.querySelectorAll(".page").forEach((page) => {
+          page.hidden = page.id !== tab.dataset.page;
+        });
+      });
+    });
+    document.querySelectorAll(".method-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".method-tab").forEach((item) => {
+          const selected = item === tab;
+          item.setAttribute("aria-selected", String(selected));
+          item.tabIndex = selected ? 0 : -1;
+        });
+        document.querySelectorAll(".method-panel").forEach((panel) => {
+          panel.hidden = panel.id !== tab.getAttribute("aria-controls");
+        });
+      });
+    });
+    document.querySelectorAll(".example-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".example-tab").forEach((item) => item.setAttribute("aria-selected", String(item === tab)));
+        document.querySelectorAll(".example-panel").forEach((panel) => {
+          panel.hidden = panel.id !== tab.getAttribute("aria-controls");
+        });
+      });
+    });
+    requestCredential();
+  </script>
+</body>
+</html>
