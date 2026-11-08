@@ -318,15 +318,6 @@ class LlamaServerChatModel:
 def load_local_model() -> None:
     global LOCAL_MODEL, MODEL_STATUS
 
-    if not MODEL_PATH.is_file():
-        MODEL_STATUS = {
-            "stage": "model_missing",
-            "message": f"File model GGUF tidak ditemukan: {MODEL_PATH}",
-            "model_ready": False,
-        }
-        print(MODEL_STATUS["message"], flush=True)
-        return
-
     MODEL_STATUS = {
         "stage": "loading",
         "message": f"Menunggu llama.cpp memuat {MODEL_PATH.name}.",
@@ -336,7 +327,9 @@ def load_local_model() -> None:
         health_url = f"{MODEL_SERVER_URL}/health"
         for attempt in range(90):
             try:
-                with urllib.request.urlopen(health_url, timeout=3):
+                with urllib.request.urlopen(health_url, timeout=3) as response:
+                    if response.status >= 400:
+                        raise RuntimeError(f"llama.cpp mengembalikan HTTP {response.status}")
                     break
             except OSError:
                 if attempt == 89:
@@ -354,7 +347,7 @@ def load_local_model() -> None:
 
     MODEL_STATUS = {
         "stage": "ready",
-        "message": "Model vision zydra-loRa.gguf siap.",
+        "message": "Server llama.cpp dan model vision zydra-loRa.gguf siap.",
         "model_ready": True,
     }
     print(MODEL_STATUS["message"], flush=True)

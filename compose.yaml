@@ -13,7 +13,7 @@ services:
     ports:
       - "${HOST_PORT:-8000}:8000"
     volumes:
-      - ./app/model:/app/model:ro
+      - ./model:/app/model:ro
       - zydra-data:/data
     depends_on:
       - llama
@@ -39,7 +39,7 @@ services:
       - "${MODEL_THREADS:-4}"
       - --no-mmproj-offload
     volumes:
-      - ./app/model:/models:ro
+      - ./model:/models:ro
 
 volumes:
   zydra-data:

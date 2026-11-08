@@ -58,13 +58,13 @@ Grafik khusus repository Zydra:
 Pastikan Docker Engine tersedia dan kedua file model vision berikut ada:
 
 ```text
-app/model/zydra-loRa.gguf
-app/model/mmproj-zydra-loRa.gguf
+model/zydra-loRa.gguf
+model/mmproj-zydra-loRa.gguf
 ```
 
 API menggunakan model layanan `zydra-loRa`, SmolVLM2 500M Q8_0 yang mendukung
 gambar dan teks. llama.cpp memerlukan GGUF utama dan `mmproj` untuk encoder
-gambar. Kedua berkas berukuran sekitar 521 MiB dan dipasang dari `app/model/`;
+gambar. Kedua berkas berukuran sekitar 521 MiB dan dipasang dari `model/`;
 folder tersebut diabaikan Git.
 
 Salin `.env.example` menjadi `.env`, lalu isi `AUTH` dengan password master
