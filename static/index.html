@@ -2041,9 +2041,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
           }
           requestMethod = uploadFile ? "POST" : endpoint.method;
           if (requestMethod === "GET") {
-            const queryPayload = { ...payload };
-            delete queryPayload.apikey;
-            const query = new URLSearchParams(queryPayload);
+            const query = new URLSearchParams(payload);
             if (query.size > 0) url = `${endpoint.path}?${query.toString()}`;
           }
         } catch (error) {
