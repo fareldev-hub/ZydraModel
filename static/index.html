@@ -748,6 +748,16 @@
       white-space: nowrap;
     }
     .chat-send:hover:not(:disabled) { background: var(--blue-hover); }
+    .chat-upload {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #2563eb;
+      padding: 10px 4px;
+      white-space: nowrap;
+    }
+    .chat-upload:hover { color: #1d4ed8; }
     .chat-send:active:not(:disabled) { transform: scale(0.97); }
 
     .chat-status {
@@ -966,7 +976,11 @@
         </div>
         <form class="chat-form" id="chat-form">
           <label class="sr-only" for="chat-input">Pesan untuk Zydra</label>
-          <input class="chat-input" id="chat-input" name="message" type="text" maxlength="32000" placeholder="Tulis pesan..." autocomplete="off" required>
+          <input class="chat-input" id="chat-input" name="message" type="text" maxlength="32000" placeholder="Tulis pesan atau upload gambar..." autocomplete="off">
+          <label class="chat-upload" for="chat-image" title="Upload gambar">
+            <i class="fa-solid fa-image"></i><span>Gambar</span>
+          </label>
+          <input id="chat-image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
           <button class="chat-send" id="chat-send" type="submit"><i class="fa-solid fa-paper-plane"></i> Kirim</button>
         </form>
         <p class="chat-status" id="chat-status" role="status" aria-live="polite"></p>
@@ -1126,7 +1140,8 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       { id: "vision-get", method: "GET", path: "/v1/chat/vision", title: "Chat dengan gambar", auth: true, fields: [
         { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi; dikirim melalui header X-API-Key." },
         { name: "model", label: "model", type: "text", value: "zydra-loRa", readonly: true, note: "Model layanan yang digunakan." },
-        { name: "image_link", label: "image_link", type: "text", required: true, value: "", placeholder: "https://example.com/gambar.jpg", note: "URL publik langsung ke gambar JPEG, PNG, atau WebP (maksimal 10 MB)." },
+        { name: "image_link", label: "image_link", type: "text", required: false, value: "", placeholder: "https://example.com/gambar.jpg", note: "Gunakan URL publik atau pilih file dari komputer di bawah (maksimal 10 MB)." },
+        { name: "image_file", label: "Upload gambar", type: "file", required: false, accept: "image/jpeg,image/png,image/webp", note: "Format JPEG, PNG, atau WebP; URL dan upload tidak perlu diisi bersamaan." },
         { name: "caption", label: "caption", type: "textarea", required: false, value: "Jelaskan isi gambar ini.", note: "Pertanyaan atau instruksi tentang gambar." },
         { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "256", step: "1", min: "1" },
         { name: "stream", label: "stream", type: "checkbox", value: false, note: "Response streaming dikirim sebagai Server-Sent Events." },
@@ -1147,6 +1162,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
     const copyNewKeyButton = document.getElementById("copy-new-key");
     const chatForm = document.getElementById("chat-form");
     const chatInput = document.getElementById("chat-input");
+    const chatImageInput = document.getElementById("chat-image");
     const chatSendButton = document.getElementById("chat-send");
     const chatMessagesContainer = document.getElementById("chat-transcript");
     const chatStatus = document.getElementById("chat-status");
@@ -1155,6 +1171,30 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
     let apiCredential = "";
     let activeApiKeys = [];
     const chatMessages = [];
+
+    function readImageFile(file) {
+      if (!file) return Promise.resolve("");
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowedTypes.includes(file.type)) {
+        return Promise.reject(new Error("Gambar harus JPEG, PNG, atau WebP."));
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        return Promise.reject(new Error("Ukuran gambar maksimal 10 MB."));
+      }
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Gagal membaca file gambar."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    chatImageInput.addEventListener("change", () => {
+      const file = chatImageInput.files[0];
+      chatStatus.textContent = file ? `Gambar dipilih: ${file.name}` : "";
+      chatStatus.dataset.error = "false";
+    });
+
     document.getElementById("year").textContent = new Date().getFullYear();
 
     function readStoredCredential(key) {
@@ -1191,6 +1231,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
     }
 
     async function requestCredential() {
+      appShell.hidden = false;
       const savedCredential = readStoredCredential(AUTH_STORAGE_KEY);
       if (savedCredential) {
         apiCredential = savedCredential;
@@ -1224,7 +1265,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       }
 
       if (typeof Swal === "undefined") {
-        window.alert("SweetAlert tidak dapat dimuat. Muat ulang halaman untuk mencoba kembali.");
+        setKeyMessage("Komponen autentikasi tidak dapat dimuat. Periksa koneksi CDN lalu muat ulang halaman.", true);
         return;
       }
 
@@ -1593,8 +1634,18 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
     chatForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const message = chatInput.value.trim();
-      if (!message || chatSendButton.disabled) return;
-      chatMessages.push({ role: "user", content: message });
+      const imageFile = chatImageInput.files[0];
+      if ((!message && !imageFile) || chatSendButton.disabled) return;
+      const requestMessage = message || "Deskripsikan gambar ini.";
+      let imageData = "";
+      try {
+        imageData = await readImageFile(imageFile);
+      } catch (error) {
+        chatStatus.dataset.error = "true";
+        chatStatus.textContent = error.message;
+        return;
+      }
+      chatMessages.push({ role: "user", content: requestMessage });
       renderChatMessages();
       chatInput.value = "";
       chatSendButton.disabled = true;
@@ -1611,6 +1662,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
           body: JSON.stringify({
             model: "zydra-loRa",
             messages: chatMessages,
+            ...(imageData ? { image_data: imageData } : {}),
           }),
         });
         const payload = await response.json();
@@ -1626,6 +1678,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         chatMessages.pop();
         renderChatMessages();
         chatInput.value = message;
+        chatImageInput.value = "";
         chatStatus.dataset.error = "true";
         chatStatus.textContent = `Gagal mengirim pesan: ${error.message}`;
       } finally {
@@ -1681,6 +1734,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       } else {
         input = document.createElement("input");
         input.type = definition.type;
+        if (definition.accept) input.accept = definition.accept;
       }
       input.id = id;
       input.name = definition.name;
@@ -1880,7 +1934,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
           payload[field.name] = input.checked;
           continue;
         }
-        const value = input.value.trim();
+        const value = definition.type === "file" ? input.files[0] : input.value.trim();
         if (!value) {
           if (field.required) throw new Error(`${field.label} wajib diisi.`);
           continue;
@@ -1893,6 +1947,8 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
           }
         } else if (field.type === "number") {
           payload[field.name] = Number(value);
+        } else if (definition.type === "file") {
+          payload[field.name] = value;
         } else {
           payload[field.name] = value;
         }
@@ -1974,9 +2030,17 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         if (!form.reportValidity()) return;
         let url = endpoint.path;
         let payload;
+        let requestMethod = endpoint.method;
         try {
           payload = buildPayload(endpoint, form);
-          if (endpoint.method === "GET") {
+          const uploadFile = payload.image_file;
+          if (uploadFile) {
+            payload.image_data = await readImageFile(uploadFile);
+            delete payload.image_file;
+            delete payload.image_link;
+          }
+          requestMethod = uploadFile ? "POST" : endpoint.method;
+          if (requestMethod === "GET") {
             const queryPayload = { ...payload };
             delete queryPayload.apikey;
             const query = new URLSearchParams(queryPayload);
@@ -1993,8 +2057,8 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         const keyField = endpoint.fields.find((field) => field.name === "apikey");
         const requestApiKey = keyField ? payload.apikey : apiCredential;
         if (requestApiKey) headers["X-API-Key"] = requestApiKey;
-        const options = { method: endpoint.method, headers };
-        if (endpoint.method === "POST") {
+        const options = { method: requestMethod, headers };
+        if (requestMethod === "POST") {
           headers["Content-Type"] = "application/json";
           options.body = JSON.stringify(payload);
         }

@@ -1,4 +1,5 @@
 import base64
+import binascii
 import hashlib
 import ipaddress
 import json
@@ -365,6 +366,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     model: str = MODEL_ID
     messages: List[Message] = Field(..., min_length=1)
+    image_data: Optional[str] = Field(None, max_length=15_000_000)
     stream: bool = False
     tools: Optional[List[Dict[str, Any]]] = None
     temperature: Optional[float] = Field(None, ge=0, le=2)
@@ -382,7 +384,8 @@ class PromptRequest(BaseModel):
 
 class VisionChatRequest(BaseModel):
     model: str = MODEL_ID
-    image_link: HttpUrl
+    image_link: Optional[HttpUrl] = None
+    image_data: Optional[str] = Field(None, max_length=15_000_000)
     caption: str = Field("", max_length=4000)
     stream: bool = False
     temperature: Optional[float] = Field(None, ge=0, le=2)
@@ -625,6 +628,20 @@ def download_image_as_base64(image_url: str) -> str:
     return f"data:{content_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
 
 
+def validate_image_data(image_data: str) -> str:
+    header, separator, encoded = image_data.partition(",")
+    allowed_prefixes = tuple(f"data:{content_type};base64" for content_type in ALLOWED_IMAGE_TYPES)
+    if not separator or header not in allowed_prefixes or not encoded:
+        raise HTTPException(status_code=422, detail="image_data harus berupa data URL gambar yang valid")
+    try:
+        image_bytes = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise HTTPException(status_code=422, detail="image_data bukan base64 yang valid") from exc
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Ukuran gambar maksimal 10 MB")
+    return image_data
+
+
 @app.post("/v1/chat/vision")
 def vision_chat(
     req: VisionChatRequest,
@@ -636,7 +653,12 @@ def vision_chat(
     local_model = require_available_model(req.model)
     caption = req.caption.strip() or "Deskripsikan isi gambar ini secara akurat."
     messages = to_model_messages([Message(role="user", content=caption)])
-    image_data = [download_image_as_base64(str(req.image_link))]
+    if req.image_data:
+        image_data = [validate_image_data(req.image_data)]
+    elif req.image_link:
+        image_data = [download_image_as_base64(str(req.image_link))]
+    else:
+        raise HTTPException(status_code=422, detail="Pilih file gambar atau isi image_link")
     options = {
         "temperature": req.temperature if req.temperature is not None else 0.2,
         "top_p": 0.9,
@@ -734,6 +756,7 @@ def chat(
                 completion_id,
                 options,
                 req.tools,
+                [validate_image_data(req.image_data)] if req.image_data else None,
             ),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
@@ -745,6 +768,7 @@ def chat(
                 messages=messages,
                 stream=False,
                 tools=req.tools,
+                image_data=[validate_image_data(req.image_data)] if req.image_data else None,
                 **options,
             )
     except (OSError, RuntimeError, TypeError, ValueError) as exc:
