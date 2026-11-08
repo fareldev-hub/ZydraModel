@@ -28,7 +28,6 @@ app = FastAPI(
     openapi_url=None,
 )
 
-MODEL_PATH = Path(os.getenv("MODEL_PATH", "/app/model/zydra-loRa.gguf"))
 MODEL_SERVER_URL = os.getenv("MODEL_SERVER_URL", "http://llama:8080").rstrip("/")
 MODEL_ID = "zydra-loRa"
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -320,7 +319,7 @@ def load_local_model() -> None:
 
     MODEL_STATUS = {
         "stage": "loading",
-        "message": f"Menunggu llama.cpp memuat {MODEL_PATH.name}.",
+        "message": "Menunggu llama.cpp mengunduh dan memuat model.",
         "model_ready": False,
     }
     try:
@@ -347,7 +346,7 @@ def load_local_model() -> None:
 
     MODEL_STATUS = {
         "stage": "ready",
-        "message": "Server llama.cpp dan model vision zydra-loRa.gguf siap.",
+        "message": "Server llama.cpp dan model Hugging Face siap.",
         "model_ready": True,
     }
     print(MODEL_STATUS["message"], flush=True)

@@ -8,14 +8,12 @@ services:
     env_file:
       - .env
     environment:
-      MODEL_PATH: ${MODEL_PATH:-/app/model/zydra-loRa.gguf}
       MODEL_SERVER_URL: ${MODEL_SERVER_URL:-http://llama:8080}
       AUTH_FILE: ${AUTH_FILE:-/data/auth}
       API_KEYS_FILE: ${API_KEYS_FILE:-/data/database/api.json}
     ports:
       - "${HOST_PORT:-8000}:8000"
     volumes:
-      - ./model:/app/model:ro
       - zydra-data:/data
     depends_on:
       - llama
@@ -25,10 +23,8 @@ services:
     container_name: zydra-llama
     restart: unless-stopped
     command:
-      - -m
-      - /models/zydra-loRa.gguf
-      - --mmproj
-      - /models/mmproj-zydra-loRa.gguf
+      - -hf
+      - "${HF_MODEL_REPO:-fareld3v-hub/zydra}"
       - --host
       - 0.0.0.0
       - --port
@@ -41,7 +37,8 @@ services:
       - "${MODEL_THREADS:-4}"
       - --no-mmproj-offload
     volumes:
-      - ./model:/models:ro
+      - llama-model-cache:/root/.cache/llama.cpp
 
 volumes:
   zydra-data:
+  llama-model-cache:

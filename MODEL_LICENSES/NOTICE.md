@@ -3,8 +3,8 @@
 The current Zydra vision runtime uses **SmolVLM2 500M Video Instruct** with
 llama.cpp. Its model weights and vision projector are distributed under the
 Apache License 2.0.
-The local files are `model/zydra-loRa.gguf` and
-`model/mmproj-zydra-loRa.gguf`.
+The model files are downloaded at runtime from
+`fareld3v-hub/zydra` on Hugging Face and cached in a Docker volume.
 
 - Model: https://huggingface.co/HuggingFaceTB/SmolVLM2-500M-Video-Instruct
 - Model license: Apache License 2.0

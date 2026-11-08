@@ -55,17 +55,13 @@ Grafik khusus repository Zydra:
 
 ## Persiapan
 
-Pastikan Docker Engine tersedia dan kedua file model vision berikut ada:
-
-```text
-model/zydra-loRa.gguf
-model/mmproj-zydra-loRa.gguf
-```
+Pastikan Docker Engine tersedia dan koneksi internet aktif. Docker akan
+mengunduh model dari Hugging Face saat container `llama` pertama kali dijalankan.
 
 API menggunakan model layanan `zydra-loRa`, SmolVLM2 500M Q8_0 yang mendukung
 gambar dan teks. llama.cpp memerlukan GGUF utama dan `mmproj` untuk encoder
-gambar. Kedua berkas berukuran sekitar 521 MiB dan dipasang dari `model/`;
-folder tersebut diabaikan Git.
+gambar. Cache model disimpan dalam volume Docker `llama-model-cache`, sehingga
+unduhan tidak diulang pada restart biasa.
 
 Salin `.env.example` menjadi `.env`, lalu isi `AUTH` dengan password master
 yang kuat. Jangan commit file `.env`. Jika `AUTH` dibiarkan kosong, aplikasi
@@ -78,8 +74,9 @@ cp .env.example .env
 
 `.env.example` mencantumkan variabel runtime beserta nilai default-nya.
 
-Runtime tidak mengunduh model. Compose menjalankan API dan server llama.cpp
-terpisah, lalu server memuat GGUF utama dan projector dari folder lokal.
+Compose menjalankan API dan server llama.cpp terpisah. Server llama.cpp
+mengunduh model dari repository `fareld3v-hub/zydra` menggunakan opsi `-hf`.
+Repository dapat diganti melalui `HF_MODEL_REPO` di file `.env`.
 
 ## Identitas Model
 
@@ -91,8 +88,8 @@ Zydra.
 
 ## Build dan jalankan dengan Docker Compose
 
-Jalankan dari root repository. Pastikan kedua GGUF dan file `.env` sudah tersedia
-seperti dijelaskan di bagian persiapan. Compose membangun image jika diperlukan,
+Jalankan dari root repository. Pastikan file `.env` sudah tersedia seperti
+dijelaskan di bagian persiapan. Compose membangun image jika diperlukan,
 menjalankan API dan server llama.cpp di background, dan menyimpan data API pada
 volume persisten:
 
@@ -114,10 +111,9 @@ berikut menghentikan dan menghapus container, tetapi mempertahankan volume data:
 docker compose down
 ```
 
-Bobot model dipasang dari folder proyek dan tidak disalin ke image. Port host
-default adalah `8000`; ubah dengan `HOST_PORT` di file `.env` bila port tersebut
-sudah digunakan. Model memerlukan `zydra-loRa.gguf` beserta
-`mmproj-zydra-loRa.gguf`.
+Bobot model tidak disalin ke image API dan di-cache pada volume Docker. Port
+host default adalah `8000`; ubah dengan `HOST_PORT` di file `.env` bila port
+tersebut sudah digunakan.
 
 Pastikan API dan model siap:
 
