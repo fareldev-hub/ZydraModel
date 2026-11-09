@@ -102,10 +102,12 @@ MODEL_THREADS=4
 Buat public domain untuk service API dari menu Networking Railway agar aplikasi
 dapat dibuka dari browser. Tidak perlu membuat service `llama` terpisah atau
 mengatur `MODEL_SERVER_URL`; secara default API menghubungi `llama-server` pada
-container yang sama. Buka `/ready` pada domain API untuk memastikan model sudah
-selesai diunduh dan siap. `/health` memeriksa bahwa API berjalan dan digunakan
-sebagai health check Railway, sementara `/ready` mengembalikan HTTP 200 setelah
-model siap.
+container yang sama. Jika pernah menambahkan `MODEL_SERVER_URL` di Variables
+Railway mengikuti konfigurasi lama, hapus variable tersebut. Entrypoint image
+ini memakai alamat lokal model secara langsung. Buka `/ready` pada domain API
+untuk memastikan model sudah selesai diunduh dan siap. `/health` memeriksa bahwa
+API berjalan dan digunakan sebagai health check Railway, sementara `/ready`
+mengembalikan HTTP 200 setelah model siap.
 
 ## Identitas Model
 

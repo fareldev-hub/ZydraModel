@@ -7,6 +7,8 @@ if [[ "${RUN_LOCAL_MODEL:-true}" != "true" ]]; then
   exec python3 -m uvicorn api:app --host 0.0.0.0 --port "${PORT:-8000}"
 fi
 
+export MODEL_SERVER_URL="http://127.0.0.1:8081"
+
 /app/llama-server \
   -hf "${HF_MODEL_REPO:-fareld3v-hub/zydra}" \
   --host 127.0.0.1 \
