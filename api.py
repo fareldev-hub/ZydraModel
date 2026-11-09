@@ -28,7 +28,7 @@ app = FastAPI(
     openapi_url=None,
 )
 
-MODEL_SERVER_URL = os.getenv("MODEL_SERVER_URL", "http://llama:8080").rstrip("/")
+MODEL_SERVER_URL = os.getenv("MODEL_SERVER_URL", "http://127.0.0.1:8080").rstrip("/")
 MODEL_ID = "zydra-loRa"
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -321,15 +321,13 @@ def load_local_model() -> None:
     }
     try:
         health_url = f"{MODEL_SERVER_URL}/health"
-        for attempt in range(90):
+        while True:
             try:
                 with urllib.request.urlopen(health_url, timeout=3) as response:
                     if response.status >= 400:
                         raise RuntimeError(f"llama.cpp mengembalikan HTTP {response.status}")
                     break
             except OSError:
-                if attempt == 89:
-                    raise RuntimeError("llama.cpp tidak siap setelah 180 detik")
                 time.sleep(2)
         LOCAL_MODEL = LlamaServerChatModel(MODEL_SERVER_URL)
     except Exception as exc:

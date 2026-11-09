@@ -80,47 +80,32 @@ Repository dapat diganti melalui `HF_MODEL_REPO` di file `.env`.
 
 ## Deploy ke Railway
 
-Railway menjalankan satu service per container; konfigurasi Compose di atas
-tidak membuat service API dan model secara otomatis. Buat dua service dalam
-project Railway yang sama:
+Konfigurasi Railway membangun satu container dari `Dockerfile` yang sudah
+menyertakan `llama-server` dan API. `entrypoint.sh` menjalankan keduanya; model
+mendengarkan hanya pada `127.0.0.1:8080`, sedangkan API memakai port `PORT`
+yang diberikan Railway.
 
-1. Buat service `llama` dari image
-   `ghcr.io/ggml-org/llama.cpp:server`. Atur start command:
+Buat satu service dari repository ini. Tambahkan satu volume dengan mount path
+`/data` agar password, API key, dan cache model tetap tersimpan. Atur variables
+berikut (gunakan secret kuat untuk `AUTH`):
 
-   ```text
-   -hf fareld3v-hub/zydra --host 0.0.0.0 --port 8080 --alias zydra-loRa --ctx-size 2048 --threads 4 --no-mmproj-offload
-   ```
+```text
+AUTH=<password-master-yang-kuat>
+AUTH_FILE=/data/auth
+API_KEYS_FILE=/data/database/api.json
+LLAMA_CACHE=/data/model-cache
+HF_MODEL_REPO=fareld3v-hub/zydra
+MODEL_CONTEXT_SIZE=2048
+MODEL_THREADS=4
+```
 
-   Tambahkan volume pada path `/root/.cache/llama.cpp` agar model tidak perlu
-   diunduh ulang saat service dimulai kembali. Tunggu sampai log menunjukkan
-   model selesai dimuat sebelum melanjutkan.
-
-2. Tambahkan service API dari repository ini. File `railway.json` memilih
-   `Dockerfile` dan mengatur health check ke `/health`; `entrypoint.sh`
-   otomatis memakai port yang diberikan Railway.
-
-3. Pada service API, tambahkan volume dengan mount path `/data` agar AUTH dan
-   API key tetap tersimpan. Atur variables berikut (gunakan secret kuat untuk
-   `AUTH`):
-
-   ```text
-   AUTH=<password-master-yang-kuat>
-   MODEL_SERVER_URL=http://${{llama.RAILWAY_PRIVATE_DOMAIN}}:8080
-   AUTH_FILE=/data/auth
-   API_KEYS_FILE=/data/database/api.json
-   ```
-
-   Buat public domain untuk service API dari menu Networking Railway agar
-   aplikasi dapat dibuka dari browser.
-
-   Pastikan nama service model adalah `llama`, sehingga referensi private
-   domain tersebut sesuai. Model hanya perlu diakses melalui private network;
-   jangan expose port service model ke publik.
-
-Setelah deploy, buka `/ready` pada domain service API. Endpoint ini akan
-mengembalikan HTTP 200 saat model siap; `/health` hanya memeriksa status service
-API untuk health check Railway. Jika model belum siap, periksa log kedua service
-dan pastikan `MODEL_SERVER_URL` mengarah ke private domain service `llama`.
+Buat public domain untuk service API dari menu Networking Railway agar aplikasi
+dapat dibuka dari browser. Tidak perlu membuat service `llama` terpisah atau
+mengatur `MODEL_SERVER_URL`; secara default API menghubungi `llama-server` pada
+container yang sama. Buka `/ready` pada domain API untuk memastikan model sudah
+selesai diunduh dan siap. `/health` memeriksa bahwa API berjalan dan digunakan
+sebagai health check Railway, sementara `/ready` mengembalikan HTTP 200 setelah
+model siap.
 
 ## Identitas Model
 

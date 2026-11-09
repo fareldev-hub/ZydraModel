@@ -11,6 +11,7 @@ services:
       MODEL_SERVER_URL: ${MODEL_SERVER_URL:-http://llama:8080}
       AUTH_FILE: ${AUTH_FILE:-/data/auth}
       API_KEYS_FILE: ${API_KEYS_FILE:-/data/database/api.json}
+      RUN_LOCAL_MODEL: "false"
     ports:
       - "${HOST_PORT:-8000}:8000"
     volumes:
