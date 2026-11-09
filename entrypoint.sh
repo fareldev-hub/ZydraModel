@@ -10,7 +10,7 @@ fi
 /app/llama-server \
   -hf "${HF_MODEL_REPO:-fareld3v-hub/zydra}" \
   --host 127.0.0.1 \
-  --port 8080 \
+  --port 8081 \
   --alias zydra-loRa \
   --ctx-size "${MODEL_CONTEXT_SIZE:-2048}" \
   --threads "${MODEL_THREADS:-4}" \

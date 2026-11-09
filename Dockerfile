@@ -2,7 +2,7 @@ FROM ghcr.io/ggml-org/llama.cpp:server
 
 WORKDIR /app
 
-ENV MODEL_SERVER_URL="http://127.0.0.1:8080" \
+ENV MODEL_SERVER_URL="http://127.0.0.1:8081" \
     PYTHONUNBUFFERED=1 \
     API_KEYS_FILE="/data/database/api.json" \
     AUTH_FILE="/data/auth" \

@@ -28,7 +28,7 @@ app = FastAPI(
     openapi_url=None,
 )
 
-MODEL_SERVER_URL = os.getenv("MODEL_SERVER_URL", "http://127.0.0.1:8080").rstrip("/")
+MODEL_SERVER_URL = os.getenv("MODEL_SERVER_URL", "http://127.0.0.1:8081").rstrip("/")
 MODEL_ID = "zydra-loRa"
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}

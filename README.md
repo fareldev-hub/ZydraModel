@@ -82,7 +82,7 @@ Repository dapat diganti melalui `HF_MODEL_REPO` di file `.env`.
 
 Konfigurasi Railway membangun satu container dari `Dockerfile` yang sudah
 menyertakan `llama-server` dan API. `entrypoint.sh` menjalankan keduanya; model
-mendengarkan hanya pada `127.0.0.1:8080`, sedangkan API memakai port `PORT`
+mendengarkan hanya pada `127.0.0.1:8081`, sedangkan API memakai port `PORT`
 yang diberikan Railway.
 
 Buat satu service dari repository ini. Tambahkan satu volume dengan mount path
