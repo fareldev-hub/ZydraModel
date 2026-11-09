@@ -20,7 +20,6 @@ RUN apt-get update \
 COPY api.py /app/api.py
 COPY entrypoint.sh /app/entrypoint.sh
 COPY static /app/static
-COPY MODEL_LICENSES /app/MODEL_LICENSES
 
 RUN chmod +x /app/entrypoint.sh
 
