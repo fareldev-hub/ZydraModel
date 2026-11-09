@@ -988,7 +988,7 @@
     </section>
     <section class="page" id="api-page" aria-labelledby="api-title" hidden>
     <h1 id="api-title">Zydra API</h1>
-    <p class="intro">Pilih endpoint GET, tekan <strong>Try it out</strong>, isi parameter bila diperlukan, lalu jalankan request dan lihat response JSON.</p>
+    <p class="intro">Pilih endpoint GET atau POST, tekan <strong>Try it out</strong>, isi parameter bila diperlukan, lalu jalankan request dan lihat response JSON.</p>
 
     <section class="key-manager" aria-labelledby="key-manager-title">
       <div class="section-heading">
@@ -1027,9 +1027,15 @@
       <button class="method-tab" type="button" role="tab" id="get-tab" data-method="GET" aria-controls="get-panel" aria-selected="true">
         <i class="fa-solid fa-download"></i> GET
       </button>
+      <button class="method-tab" type="button" role="tab" id="post-tab" data-method="POST" aria-controls="post-panel" aria-selected="false">
+        <i class="fa-solid fa-upload"></i> POST
+      </button>
     </div>
     <section class="method-panel" id="get-panel" role="tabpanel" aria-labelledby="get-tab">
       <div class="endpoint-list" id="endpoint-list-get" aria-label="GET endpoints"></div>
+    </section>
+    <section class="method-panel" id="post-panel" role="tabpanel" aria-labelledby="post-tab" hidden>
+      <div class="endpoint-list" id="endpoint-list-post" aria-label="POST endpoints"></div>
     </section>
 
     <section class="examples" aria-labelledby="examples-title">
@@ -1146,11 +1152,22 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "256", step: "1", min: "1" },
         { name: "stream", label: "stream", type: "checkbox", value: false, note: "Response streaming dikirim sebagai Server-Sent Events." },
       ] },
+      { id: "vision-post", method: "POST", path: "/v1/chat/vision", title: "Chat dengan gambar (JSON atau upload)", auth: true, fields: [
+        { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi untuk verifikasi; dikirim melalui header X-API-Key." },
+        { name: "model", label: "model", type: "text", value: "zydra-loRa", readonly: true, note: "Model layanan yang digunakan." },
+        { name: "image_link", label: "image_link", type: "text", required: false, value: "", placeholder: "https://example.com/gambar.jpg", note: "Isi URL publik atau pilih file upload." },
+        { name: "image_file", label: "Upload gambar", type: "file", required: false, accept: "image/jpeg,image/png,image/webp", note: "Jika dipilih, file dikirim sebagai image_data base64." },
+        { name: "caption", label: "caption", type: "textarea", required: false, value: "Jelaskan isi gambar ini.", note: "Pertanyaan atau instruksi tentang gambar." },
+        { name: "temperature", label: "temperature", type: "number", optional: true, value: "0.2", step: "0.1", min: "0", max: "2" },
+        { name: "max_tokens", label: "max_tokens", type: "number", optional: true, value: "256", step: "1", min: "1" },
+        { name: "stream", label: "stream", type: "checkbox", value: false, note: "Response streaming dikirim sebagai Server-Sent Events." },
+      ] },
     ];
 
     const appShell = document.getElementById("app-shell");
     const endpointLists = {
       GET: document.getElementById("endpoint-list-get"),
+      POST: document.getElementById("endpoint-list-post"),
     };
     const keyList = document.getElementById("key-list");
     const keyMessage = document.getElementById("key-message");

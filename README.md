@@ -78,14 +78,6 @@ Compose menjalankan API dan server llama.cpp. Server llama.cpp mengunduh model
 dari repository `fareld3v-hub/zydra` menggunakan opsi `-hf`.
 Repository dapat diganti melalui `HF_MODEL_REPO` di file `.env`.
 
-## Identitas Model
-
-API menambahkan aturan identitas dan informasi developer ke prompt sistem.
-Informasi developer hanya boleh diberikan jika pengguna menanyakannya, dan
-jawaban dibatasi pada bagian yang relevan dengan pertanyaan. SmolVLM2 memproses
-teks dan gambar; system prompt API memberi model persona serta aturan identitas
-Zydra.
-
 ## Build dan jalankan dengan Docker Compose
 
 Jalankan dari root repository. Pastikan file `.env` sudah tersedia seperti

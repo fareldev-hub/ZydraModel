@@ -641,11 +641,11 @@ def validate_image_data(image_data: str) -> str:
 @app.post("/v1/chat/vision")
 def vision_chat(
     req: VisionChatRequest,
+    apikey: Optional[str] = Query(None, description="API key untuk verifikasi request"),
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
-    query_api_key: Optional[str] = Query(None, alias="apikey"),
 ):
-    require_api_key(authorization, x_api_key, query_api_key)
+    require_api_key(authorization, x_api_key, apikey)
     local_model = require_available_model(req.model)
     caption = req.caption.strip() or "Deskripsikan isi gambar ini secara akurat."
     messages = to_model_messages([Message(role="user", content=caption)])
@@ -720,7 +720,7 @@ def vision_chat_get(
         ),
         authorization=authorization,
         x_api_key=x_api_key,
-        query_api_key=apikey,
+        apikey=apikey,
     )
 
 
