@@ -209,7 +209,9 @@ curl http://localhost:8000/v1/prompt \
 
 Endpoint ini mengembalikan JSON berisi `model`, `response`, dan `creator`.
 Route chat lama `/api/chat` tidak disediakan. UI tester dilayani melalui GET `/`;
-request dari tester memanggil endpoint API di origin yang sama.
+request dari tester memanggil endpoint API di origin yang sama. Chat pada UI
+menggunakan SSE (`stream: true`) dengan heartbeat agar koneksi tetap aktif saat
+model membutuhkan waktu lama untuk membuat jawaban.
 
 API chat kompatibel dengan format OpenAI. Uji dari terminal:
 
@@ -225,6 +227,9 @@ curl http://localhost:8000/v1/chat/completions \
 
 Parameter `tools` dari client OpenAI-compatible diabaikan karena model vision
 ini belum mendukung tool calling; chat teks tetap diproses.
+Pada Railway, gunakan `"stream":true` untuk request chat yang bisa memerlukan
+waktu lama. Stream mengirim heartbeat selama model menghasilkan jawaban agar
+koneksi publik tidak ditutup karena idle; UI tester sudah mengaktifkannya.
 
 Route `GET /v1/chat/vision` menerima URL gambar publik dan caption opsional,
 lalu mengembalikan respons dalam format chat completion:

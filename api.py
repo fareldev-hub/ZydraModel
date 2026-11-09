@@ -4,6 +4,7 @@ import hashlib
 import ipaddress
 import json
 import os
+import queue
 import secrets
 import socket
 import threading
@@ -527,6 +528,45 @@ def read_model_status() -> Dict[str, Any]:
 
 
 def stream_completion(
+    local_model: LlamaServerChatModel,
+    messages: List[Dict[str, Any]],
+    model: str,
+    completion_id: str,
+    options: Dict[str, Any],
+    tools: Optional[List[Dict[str, Any]]],
+    image_data: Optional[List[str]] = None,
+):
+    chunks = queue.Queue()
+    finished = object()
+
+    def produce_chunks():
+        try:
+            for chunk in stream_completion_chunks(
+                local_model,
+                messages,
+                model,
+                completion_id,
+                options,
+                tools,
+                image_data,
+            ):
+                chunks.put(chunk)
+        finally:
+            chunks.put(finished)
+
+    threading.Thread(target=produce_chunks, daemon=True).start()
+    while True:
+        try:
+            chunk = chunks.get(timeout=15)
+        except queue.Empty:
+            yield ": keep-alive\n\n"
+            continue
+        if chunk is finished:
+            break
+        yield chunk
+
+
+def stream_completion_chunks(
     local_model: LlamaServerChatModel,
     messages: List[Dict[str, Any]],
     model: str,

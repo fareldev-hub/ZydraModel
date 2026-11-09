@@ -1665,6 +1665,62 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
     }
 
+    async function readChatCompletion(response) {
+      if (!response.ok) {
+        const raw = await response.text();
+        let message = raw || `Request gagal (HTTP ${response.status}).`;
+        try {
+          const payload = JSON.parse(raw);
+          message = payload.detail || payload.error?.message || message;
+        } catch {
+          if (raw) message = `HTTP ${response.status}: ${raw}`;
+        }
+        throw new Error(message);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Server tidak menyediakan stream jawaban.");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let answer = "";
+
+      function processEvent(event) {
+        const data = event.split("\n")
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("\n");
+        if (!data || data === "[DONE]") return;
+
+        let payload;
+        try {
+          payload = JSON.parse(data);
+        } catch {
+          throw new Error("Server mengirim event jawaban yang tidak valid.");
+        }
+        if (payload.error?.message) throw new Error(payload.error.message);
+        answer += payload.choices?.[0]?.delta?.content || "";
+      }
+
+      while (true) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done }).replace(/\r\n/g, "\n");
+        let boundary = buffer.indexOf("\n\n");
+        while (boundary !== -1) {
+          processEvent(buffer.slice(0, boundary));
+          buffer = buffer.slice(boundary + 2);
+          boundary = buffer.indexOf("\n\n");
+        }
+        if (done) {
+          if (buffer.trim()) processEvent(buffer);
+          break;
+        }
+      }
+
+      if (!answer) throw new Error("Respons model tidak berisi jawaban yang valid.");
+      return answer;
+    }
+
     chatForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const message = chatInput.value.trim();
@@ -1696,15 +1752,11 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
           body: JSON.stringify({
             model: "zydra-loRa",
             messages: chatMessages,
+            stream: true,
             ...(imageData ? { image_data: imageData } : {}),
           }),
         });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.detail || `Request gagal (HTTP ${response.status}).`);
-        const answer = payload.choices?.[0]?.message?.content;
-        if (typeof answer !== "string" || !answer) {
-          throw new Error("Respons model tidak berisi jawaban yang valid.");
-        }
+        const answer = await readChatCompletion(response);
         chatMessages.push({ role: "assistant", content: answer });
         renderChatMessages();
         chatStatus.textContent = "";
