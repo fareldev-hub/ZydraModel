@@ -60,17 +60,6 @@
       font-weight: 800;
       letter-spacing: -0.02em;
     }
-    .brand-icon {
-      display: grid;
-      width: 36px;
-      height: 36px;
-      place-items: center;
-      border-radius: 9px;
-      color: white;
-      background: linear-gradient(135deg, #2563eb, #1e40af);
-      font-size: 16px;
-      box-shadow: 0 2px 8px rgb(37 99 235 / 0.3);
-    }
     .top-note {
       color: var(--muted);
       font-size: 13px;
@@ -930,11 +919,98 @@
 
     @media (max-width: 480px) {
       .brand { font-size: 16px; }
-      .brand-icon { width: 32px; height: 32px; font-size: 14px; }
       h1 { font-size: 22px; }
       .endpoint-top { padding: 12px; }
       .try-area { padding: 14px; }
       .method-tab { padding: 7px 12px; font-size: 12px; }
+    }
+
+    .chat-shell { height: 100%; min-height: 0; display: grid; grid-template-columns: 252px minmax(0, 1fr); overflow: hidden; border: 1px solid #e6e8e3; border-radius: 12px; background: #fff; box-shadow: 0 10px 32px rgb(25 32 25 / 0.06); }
+    .chat-sidebar { min-width: 0; display: flex; flex-direction: column; padding: 18px 12px 12px; border-right: 1px solid #e7e9e4; background: #f6f7f4; }
+    .new-chat-button { display: flex; min-height: 40px; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid #dfe3dc; border-radius: 8px; color: #30362f; background: #fff; font-size: 13px; font-weight: 650; text-align: left; transition: background var(--transition), border-color var(--transition); }
+    .new-chat-button:hover:not(:disabled) { border-color: #bec9bd; background: #fbfcfa; }
+    .new-chat-button i { color: #486950; }
+    .history-label { margin: 24px 8px 8px; color: #858b82; font-size: 10px; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+    .chat-history { display: grid; align-content: start; gap: 3px; min-height: 0; overflow-y: auto; }
+    .chat-history-item { display: flex; width: 100%; min-width: 0; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 7px; color: #535950; font-size: 12px; text-align: left; transition: color var(--transition), background var(--transition); }
+    .chat-history-item:hover:not(:disabled), .chat-history-item[aria-current="true"] { color: #29332b; background: #e9ede7; }
+    .chat-history-item i { flex: none; color: #858c81; font-size: 11px; }
+    .chat-history-item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-history-empty { padding: 8px; color: #969b93; font-size: 12px; }
+    .chat-sidebar-footer { display: flex; align-items: center; gap: 9px; margin-top: auto; padding: 14px 8px 4px; border-top: 1px solid #e3e6e0; color: #343a33; }
+    .model-status-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: #d29a42; box-shadow: 0 0 0 3px #f7eedc; }
+    .model-status-dot[data-state="ready"] { background: #5a9a69; box-shadow: 0 0 0 3px #e0eee2; }
+    .model-status-dot[data-state="error"] { background: #bd5b52; box-shadow: 0 0 0 3px #f4e3e1; }
+    .chat-sidebar-footer strong, .chat-sidebar-footer small { display: block; }
+    .chat-sidebar-footer strong { font-size: 11px; font-weight: 700; }
+    .chat-sidebar-footer small { display: block; max-width: 180px; margin-top: 1px; overflow: hidden; color: #858b82; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-main { display: flex; min-width: 0; min-height: 0; flex-direction: column; background: #fff; }
+    .chat-topbar { display: flex; height: 58px; flex: none; align-items: center; gap: 12px; padding: 0 22px; border-bottom: 1px solid #eef0ec; }
+    .chat-model-label { display: flex; min-width: 0; align-items: center; gap: 9px; }
+    .chat-model-mark { display: grid; width: 30px; height: 30px; flex: none; place-items: center; border-radius: 9px; color: #476d52; background: #edf3ed; font-size: 13px; }
+    .chat-model-copy { display: flex; min-width: 0; align-items: baseline; gap: 8px; }
+    .chat-model-copy strong { color: #2b302b; font-size: 13px; font-weight: 700; }
+    .chat-model-copy span { color: #92978f; font-size: 11px; }
+    .chat-sidebar-toggle { display: none; width: 34px; height: 34px; place-items: center; border-radius: 7px; color: #62685f; }
+    .chat-sidebar-toggle:hover { background: #f0f2ee; }
+    .chat-messages { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 24px; padding: 28px 30px 36px; overflow-y: auto; background: #fff; scroll-behavior: smooth; }
+    .chat-messages.is-empty { justify-content: center; }
+    .chat-empty { width: min(560px, 100%); margin: auto; color: #646b62; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .chat-empty h1 { color: #292f29; font-size: 24px; font-weight: 650; letter-spacing: 0; }
+    .chat-empty p { max-width: 390px; color: #80867d; font-size: 13px; }
+    .chat-suggestions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .chat-suggestion { min-height: 34px; padding: 7px 11px; border: 1px solid #e5e8e2; border-radius: 18px; color: #5d645b; background: #fff; font-size: 11px; transition: background var(--transition), border-color var(--transition); }
+    .chat-suggestion:hover { border-color: #c8d4c7; background: #f7f9f5; }
+    .chat-message { display: flex; width: min(790px, 100%); align-self: center; flex-direction: column; gap: 8px; }
+    .chat-message[data-role="user"] { width: auto; max-width: min(790px, 88%); align-self: flex-end; }
+    .chat-message[data-role="assistant"] { align-self: center; }
+    .chat-role { color: #747b72; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .chat-message[data-role="user"] .chat-role { display: none; }
+    .chat-role i { color: #5e8064; font-size: 10px; }
+    .chat-bubble { padding: 0; border: 0; border-radius: 0; color: #343a33; background: transparent; overflow-wrap: anywhere; font-size: 14px; line-height: 1.75; box-shadow: none; }
+    .chat-message[data-role="user"] .chat-bubble { padding: 11px 16px; border: 1px solid #eceee9; border-radius: 16px; color: #303630; background: #f3f4f1; box-shadow: none; }
+    .chat-form { display: block; width: min(850px, 100%); flex: none; align-self: center; padding: 0; background: transparent; }
+    .composer-shell { width: 100%; overflow: hidden; border: 1px solid #dfe3dc; border-radius: 18px; background: #fff; box-shadow: 0 3px 14px rgb(20 30 20 / 0.06); transition: border-color var(--transition), box-shadow var(--transition); }
+    .composer-shell:focus-within { border-color: #a7b9a7; box-shadow: 0 0 0 3px rgb(83 121 88 / 0.08), 0 3px 14px rgb(20 30 20 / 0.06); }
+    .chat-input { display: block; width: 100%; min-width: 0; min-height: 48px; max-height: 170px; resize: none; overflow-y: auto; padding: 13px 16px 5px; border: 0; border-radius: 16px 16px 0 0; outline: none; color: #303630; background: transparent; box-shadow: none; font: inherit; font-size: 14px; line-height: 1.55; }
+    .chat-input:focus { border: 0; box-shadow: none; }
+    .composer-toolbar { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 8px 7px; }
+    .composer-tools { display: flex; min-width: 0; align-items: center; gap: 8px; }
+    .chat-upload { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: 9px; color: #666e63; background: transparent; cursor: pointer; transition: color var(--transition), background var(--transition); }
+    .chat-upload:hover { color: #355a3e; background: #f0f3ee; }
+    .chat-image-name { max-width: 260px; overflow: hidden; color: #687064; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-send { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: 10px; color: #fff; background: #44674c; font-size: 13px; transition: background var(--transition), transform var(--transition); }
+    .chat-send:hover:not(:disabled) { background: #35583e; }
+    .chat-send:active:not(:disabled) { transform: scale(0.96); }
+    .chat-status { display: block; min-height: 20px; margin: 0; padding: 8px 28px 0; color: #858b82; font-size: 11px; text-align: center; }
+    .chat-status[data-error="true"] { color: #b94a42; }
+    .chat-status:not(:empty)::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; vertical-align: 1px; }
+    .chat-disclaimer { padding: 6px 20px 12px; color: #a0a49d; font-size: 10px; text-align: center; }
+    .chat-sidebar-backdrop { display: none; }
+    body.chat-mode { height: 100dvh; overflow: hidden; background: #f2f3f0; }
+    body.chat-mode #app-shell { display: flex; height: 100dvh; flex-direction: column; }
+    #app-shell[hidden] { display: none !important; }
+    body.chat-mode header.shell { width: 100%; height: 60px; flex: none; margin: 0; padding: 0 24px; border-bottom-color: #e6e8e3; }
+    body.chat-mode footer { display: none; }
+    body.chat-mode main.shell { width: 100%; max-width: none; height: calc(100dvh - 60px); min-height: 0; flex: 1; margin: 0; padding: 14px 18px 18px; }
+    body.chat-mode #chat-page { height: 100%; }
+    @media (max-width: 720px) {
+      body.chat-mode header.shell { height: 56px; padding: 0 14px; }
+      body.chat-mode main.shell { height: calc(100dvh - 56px); padding: 8px; }
+      .chat-shell { grid-template-columns: minmax(0, 1fr); border-radius: 9px; }
+      .chat-sidebar { position: fixed; z-index: 101; top: 0; bottom: 0; left: 0; width: min(290px, 86vw); box-shadow: 12px 0 36px rgb(0 0 0 / 0.12); transform: translateX(-105%); transition: transform 0.2s ease; }
+      body.chat-sidebar-open .chat-sidebar { transform: translateX(0); }
+      .chat-sidebar-backdrop:not([hidden]) { display: block; position: fixed; z-index: 100; inset: 0; border: 0; background: rgb(22 28 22 / 0.24); }
+      .chat-sidebar-toggle { display: grid; }
+      .chat-topbar { height: 52px; gap: 8px; padding: 0 12px; }
+      .chat-model-copy { display: grid; gap: 0; }
+      .chat-messages { padding: 22px 16px 26px; }
+      .chat-empty h1 { font-size: 21px; }
+      .chat-message[data-role="user"] { max-width: 94%; }
+      .chat-form { padding: 0 8px; }
+      .chat-send { width: 34px; }
+      .chat-status { padding-right: 12px; padding-left: 12px; }
+      .chat-image-name { max-width: 170px; }
     }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -943,11 +1019,10 @@
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body>
+<body class="chat-mode">
   <div id="app-shell" hidden>
   <header class="shell">
     <a class="brand" href="/" aria-label="Zydra API">
-      <span class="brand-icon" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
       <span>Zydra API</span>
     </a>
     <nav class="view-tabs" aria-label="Halaman">
@@ -960,30 +1035,40 @@
     </nav>
   </header>
   <main class="shell">
-    <section class="page" id="chat-page" aria-labelledby="chat-title">
-      <h1 id="chat-title">Chat dengan Zydra</h1>
-      <p class="intro">Tanyakan sesuatu dan lanjutkan percakapan. Jawaban mendukung format Markdown.</p>
+    <section class="page" id="chat-page" aria-label="Chat dengan Zydra">
       <div class="chat-shell">
-        <div class="chat-heading">
-          <div class="chat-heading-icon"><i class="fa-solid fa-robot"></i></div>
-          <div>
-            <h2>Zydra AI</h2>
-            <p>Asisten AI teks</p>
+        <aside class="chat-sidebar" aria-label="Riwayat percakapan">
+          <button class="new-chat-button" id="new-chat-button" type="button"><i class="fa-solid fa-plus"></i><span>Chat baru</span></button>
+          <h2 class="history-label">Riwayat</h2>
+          <nav class="chat-history" id="chat-history" aria-label="Daftar percakapan"></nav>
+          <div class="chat-sidebar-footer"><span class="model-status-dot" id="model-status-dot" data-state="loading" aria-hidden="true"></span><div><small id="chat-model-status">Memeriksa status...</small></div></div>
+        </aside>
+        <button class="chat-sidebar-backdrop" id="chat-sidebar-backdrop" type="button" aria-label="Tutup riwayat" hidden></button>
+        <div class="chat-main">
+          <div class="chat-topbar">
+            <button class="chat-sidebar-toggle" id="chat-sidebar-toggle" type="button" aria-label="Buka riwayat"><i class="fa-solid fa-bars"></i></button>
+            <div class="chat-model-label">
+            <div class="chat-model-copy"><strong>zydra-loRa</strong></div>
+            </div>
           </div>
+          <div class="chat-messages is-empty" id="chat-transcript" role="log" aria-live="polite" aria-label="Percakapan"></div>
+          <form class="chat-form" id="chat-form">
+            <div class="composer-shell">
+              <label class="sr-only" for="chat-input">Pesan untuk Zydra</label>
+              <textarea class="chat-input" id="chat-input" name="message" maxlength="32000" rows="1" placeholder="Kirim pesan ke Zydra" autocomplete="off"></textarea>
+              <div class="composer-toolbar">
+                <div class="composer-tools">
+                  <label class="chat-upload" for="chat-image" title="Lampirkan gambar" aria-label="Lampirkan gambar"><i class="fa-regular fa-image"></i></label>
+                  <input id="chat-image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                  <span class="chat-image-name" id="chat-image-name"></span>
+                </div>
+                <button class="chat-send" id="chat-send" type="submit" aria-label="Kirim pesan" title="Kirim pesan"><i class="fa-solid fa-arrow-up"></i></button>
+              </div>
+            </div>
+          </form>
+          <p class="chat-status" id="chat-status" role="status" aria-live="polite"></p>
+          <p class="chat-disclaimer">Jawaban AI dapat keliru. Periksa kembali informasi penting.</p>
         </div>
-        <div class="chat-messages" id="chat-transcript" role="log" aria-live="polite" aria-label="Percakapan">
-          <p class="chat-empty"><i class="fa-regular fa-message"></i>Mulai percakapan dengan mengirim pesan di bawah.</p>
-        </div>
-        <form class="chat-form" id="chat-form">
-          <label class="sr-only" for="chat-input">Pesan untuk Zydra</label>
-          <input class="chat-input" id="chat-input" name="message" type="text" maxlength="32000" placeholder="Tulis pesan atau upload gambar..." autocomplete="off">
-          <label class="chat-upload" for="chat-image" title="Upload gambar">
-            <i class="fa-solid fa-image"></i><span>Gambar</span>
-          </label>
-          <input id="chat-image" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-          <button class="chat-send" id="chat-send" type="submit"><i class="fa-solid fa-paper-plane"></i> Kirim</button>
-        </form>
-        <p class="chat-status" id="chat-status" role="status" aria-live="polite"></p>
       </div>
     </section>
     <section class="page" id="api-page" aria-labelledby="api-title" hidden>
@@ -1183,11 +1268,20 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
     const chatSendButton = document.getElementById("chat-send");
     const chatMessagesContainer = document.getElementById("chat-transcript");
     const chatStatus = document.getElementById("chat-status");
+    const chatHistory = document.getElementById("chat-history");
+    const newChatButton = document.getElementById("new-chat-button");
+    const chatImageName = document.getElementById("chat-image-name");
+    const chatSidebarToggle = document.getElementById("chat-sidebar-toggle");
+    const chatSidebarBackdrop = document.getElementById("chat-sidebar-backdrop");
+    const modelStatusDot = document.getElementById("model-status-dot");
+    const chatModelStatus = document.getElementById("chat-model-status");
     const AUTH_STORAGE_KEY = "zydra.auth";
     const API_KEY_STORAGE_KEY = "zydra.apiKey";
     let apiCredential = "";
     let activeApiKeys = [];
-    const chatMessages = [];
+    const chatConversations = [];
+    let activeConversationId = "";
+    let chatMessages = [];
 
     function readImageFile(file) {
       if (!file) return Promise.resolve("");
@@ -1208,7 +1302,9 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
 
     chatImageInput.addEventListener("change", () => {
       const file = chatImageInput.files[0];
-      chatStatus.textContent = file ? `Gambar dipilih: ${file.name}` : "";
+      chatImageName.textContent = file ? file.name : "";
+      chatImageName.title = file ? file.name : "";
+      chatStatus.textContent = "";
       chatStatus.dataset.error = "false";
     });
 
@@ -1638,12 +1734,61 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       }
     }
 
+    function renderConversationList() {
+      chatHistory.replaceChildren();
+      if (chatConversations.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "chat-history-empty";
+        empty.textContent = "Belum ada percakapan";
+        chatHistory.append(empty);
+        return;
+      }
+      for (const conversation of chatConversations) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chat-history-item";
+        button.dataset.conversationId = conversation.id;
+        button.setAttribute("aria-current", String(conversation.id === activeConversationId));
+        button.disabled = chatSendButton.disabled;
+        const icon = document.createElement("i");
+        icon.className = "fa-regular fa-message";
+        const title = document.createElement("span");
+        title.textContent = conversation.title;
+        button.append(icon, title);
+        chatHistory.append(button);
+      }
+    }
+
+    function updateActiveConversationTitle() {
+      const conversation = chatConversations.find((item) => item.id === activeConversationId);
+      if (!conversation) return;
+      const firstMessage = conversation.messages.find((message) => message.role === "user");
+      conversation.title = firstMessage
+        ? firstMessage.content.replace(/\s+/g, " ").slice(0, 42)
+        : "Percakapan baru";
+      conversation.updatedAt = Date.now();
+      chatConversations.sort((first, second) => second.updatedAt - first.updatedAt);
+      renderConversationList();
+    }
+
     function renderChatMessages() {
       chatMessagesContainer.replaceChildren();
+      chatMessagesContainer.classList.toggle("is-empty", chatMessages.length === 0);
       if (chatMessages.length === 0) {
-        const empty = document.createElement("p");
+        const empty = document.createElement("div");
         empty.className = "chat-empty";
-        empty.innerHTML = '<i class="fa-regular fa-message"></i>Mulai percakapan dengan mengirim pesan di bawah.';
+        empty.innerHTML = '<h1>Apa yang ingin kamu ketahui?</h1><p>Mulai percakapan baru dengan Zydra.</p>';
+        const suggestions = document.createElement("div");
+        suggestions.className = "chat-suggestions";
+        for (const prompt of ["Jelaskan topik yang rumit", "Bantu saya menulis", "Analisis gambar"]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "chat-suggestion";
+          button.dataset.chatPrompt = prompt;
+          button.textContent = prompt;
+          suggestions.append(button);
+        }
+        empty.append(suggestions);
         chatMessagesContainer.append(empty);
         return;
       }
@@ -1664,6 +1809,76 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       }
       chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
     }
+
+    function setMobileSidebarOpen(open) {
+      document.body.classList.toggle("chat-sidebar-open", open);
+      chatSidebarBackdrop.hidden = !open;
+      chatSidebarToggle.setAttribute("aria-expanded", String(open));
+    }
+
+    async function refreshChatModelStatus() {
+      try {
+        const response = await fetch("/health", { cache: "no-store" });
+        if (!response.ok) throw new Error("Status model tidak tersedia");
+        const status = await response.json();
+        modelStatusDot.dataset.state = status.model_ready ? "ready" : "loading";
+        chatModelStatus.textContent = status.model_ready ? "Siap" : status.setup_message || "Memuat model...";
+      } catch {
+        modelStatusDot.dataset.state = "error";
+        chatModelStatus.textContent = "Tidak terhubung";
+      }
+    }
+
+    function startNewChat() {
+      if (chatSendButton.disabled) return;
+      const id = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const conversation = { id, title: "Percakapan baru", messages: [], updatedAt: Date.now() };
+      chatConversations.unshift(conversation);
+      activeConversationId = id;
+      chatMessages = conversation.messages;
+      chatStatus.textContent = "";
+      chatStatus.dataset.error = "false";
+      chatImageInput.value = "";
+      chatImageName.textContent = "";
+      chatInput.value = "";
+      chatInput.style.height = "";
+      renderConversationList();
+      renderChatMessages();
+      setMobileSidebarOpen(false);
+      chatInput.focus();
+    }
+
+    newChatButton.addEventListener("click", startNewChat);
+    chatSidebarToggle.addEventListener("click", () => setMobileSidebarOpen(true));
+    chatSidebarBackdrop.addEventListener("click", () => setMobileSidebarOpen(false));
+    chatHistory.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-conversation-id]");
+      if (!button || chatSendButton.disabled) return;
+      const conversation = chatConversations.find((item) => item.id === button.dataset.conversationId);
+      if (!conversation) return;
+      activeConversationId = conversation.id;
+      chatMessages = conversation.messages;
+      chatStatus.textContent = "";
+      chatStatus.dataset.error = "false";
+      renderConversationList();
+      renderChatMessages();
+      setMobileSidebarOpen(false);
+    });
+    chatMessagesContainer.addEventListener("click", (event) => {
+      const suggestion = event.target.closest("[data-chat-prompt]");
+      if (!suggestion) return;
+      chatInput.value = suggestion.dataset.chatPrompt;
+      chatInput.focus();
+      resizeChatInput();
+    });
+    function resizeChatInput() {
+      chatInput.style.height = "auto";
+      chatInput.style.height = `${Math.min(chatInput.scrollHeight, 170)}px`;
+    }
+    chatInput.addEventListener("input", resizeChatInput);
+    startNewChat();
+    refreshChatModelStatus();
+    window.setInterval(refreshChatModelStatus, 15000);
 
     async function readChatCompletion(response) {
       if (!response.ok) {
@@ -1736,10 +1951,14 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         return;
       }
       chatMessages.push({ role: "user", content: requestMessage });
+      updateActiveConversationTitle();
       renderChatMessages();
       chatInput.value = "";
+      resizeChatInput();
       chatSendButton.disabled = true;
-      chatSendButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+      newChatButton.disabled = true;
+      renderConversationList();
+      chatSendButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
       chatStatus.dataset.error = "false";
       chatStatus.textContent = "Zydra sedang menyiapkan jawaban...";
       try {
@@ -1762,14 +1981,20 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         chatStatus.textContent = "";
       } catch (error) {
         chatMessages.pop();
+        updateActiveConversationTitle();
         renderChatMessages();
         chatInput.value = message;
-        chatImageInput.value = "";
+        resizeChatInput();
         chatStatus.dataset.error = "true";
         chatStatus.textContent = `Gagal mengirim pesan: ${error.message}`;
       } finally {
         chatSendButton.disabled = false;
-        chatSendButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim';
+        newChatButton.disabled = false;
+        chatSendButton.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+        chatImageInput.value = "";
+        chatImageName.textContent = "";
+        chatImageName.title = "";
+        renderConversationList();
         chatInput.focus();
       }
     });
@@ -2195,6 +2420,8 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         document.querySelectorAll(".page").forEach((page) => {
           page.hidden = page.id !== tab.dataset.page;
         });
+        document.body.classList.toggle("chat-mode", tab.dataset.page === "chat-page");
+        setMobileSidebarOpen(false);
       });
     });
     document.querySelectorAll(".method-tab").forEach((tab) => {
