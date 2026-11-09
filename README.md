@@ -74,10 +74,8 @@ cp .env.example .env
 
 `.env.example` mencantumkan variabel runtime beserta nilai default-nya.
 
-Compose menjalankan API, server llama.cpp, dan Open WebUI untuk pengujian
-chatbot. Open WebUI menggunakan endpoint OpenAI-compatible milik Zydra;
-Ollama tidak diperlukan. Server llama.cpp mengunduh model dari repository
-`fareld3v-hub/zydra` menggunakan opsi `-hf`.
+Compose menjalankan API dan server llama.cpp. Server llama.cpp mengunduh model
+dari repository `fareld3v-hub/zydra` menggunakan opsi `-hf`.
 Repository dapat diganti melalui `HF_MODEL_REPO` di file `.env`.
 
 ## Identitas Model
@@ -98,12 +96,6 @@ volume persisten:
 ```sh
 docker compose up -d --build
 ```
-
-Open WebUI tersedia di `http://localhost:3000` (atau port yang diatur melalui
-`WEBUI_PORT`). Agar Open WebUI dapat terhubung otomatis ke API, isi `AUTH` di
-`.env` dengan password master yang kuat sebelum menjalankan Compose. Saat
-membuat akun pertama di Open WebUI, gunakan koneksi model `zydra-loRa`; base URL
-internalnya sudah dikonfigurasi ke `http://zydra:8000/v1`.
 
 Container tetap berjalan setelah perintah selesai. Pantau startup dan tunggu
 sampai log menampilkan `Model vision zydra-loRa.gguf siap.`:
@@ -200,8 +192,8 @@ curl http://localhost:8000/v1/chat/completions \
   -d '{"model":"zydra-loRa","messages":[{"role":"user","content":"Balas singkat: AI siap"}]}'
 ```
 
-Parameter `tools` dari client OpenAI-compatible seperti Open WebUI diabaikan
-karena model vision ini belum mendukung tool calling; chat teks tetap diproses.
+Parameter `tools` dari client OpenAI-compatible diabaikan karena model vision
+ini belum mendukung tool calling; chat teks tetap diproses.
 
 Route `GET /v1/chat/vision` menerima URL gambar publik dan caption opsional,
 lalu mengembalikan respons dalam format chat completion:
