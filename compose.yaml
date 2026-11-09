@@ -8,37 +8,16 @@ services:
     env_file:
       - .env
     environment:
-      MODEL_SERVER_URL: ${MODEL_SERVER_URL:-http://llama:8080}
       AUTH_FILE: ${AUTH_FILE:-/data/auth}
       API_KEYS_FILE: ${API_KEYS_FILE:-/data/database/api.json}
-      RUN_LOCAL_MODEL: "false"
+      HF_HOME: ${HF_HOME:-/data/model-cache}
+      HF_MODEL_REPO: "${HF_MODEL_REPO:-ggml-org/SmolVLM2-500M-Video-Instruct-GGUF:Q8_0}"
+      RUN_LOCAL_MODEL: "true"
     ports:
       - "${HOST_PORT:-8000}:8000"
     volumes:
       - zydra-data:/data
-    depends_on:
-      - llama
-
-  llama:
-    image: ghcr.io/ggml-org/llama.cpp:server
-    container_name: zydra-llama
-    restart: unless-stopped
-    command:
-      - -hf
-      - "${HF_MODEL_REPO:-fareld3v-hub/zydra}"
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8080"
-      - --alias
-      - zydra-loRa
-      - --ctx-size
-      - "${MODEL_CONTEXT_SIZE:-2048}"
-      - --threads
-      - "${MODEL_THREADS:-4}"
-      - --no-mmproj-offload
-    volumes:
-      - llama-model-cache:/root/.cache/llama.cpp
+      - llama-model-cache:/data/model-cache
 
 volumes:
   zydra-data:

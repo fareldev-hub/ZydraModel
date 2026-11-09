@@ -10,7 +10,7 @@ fi
 export MODEL_SERVER_URL="http://127.0.0.1:8081"
 
 /app/llama-server \
-  -hf "${HF_MODEL_REPO:-fareld3v-hub/zydra}" \
+  -hf "${HF_MODEL_REPO:-ggml-org/SmolVLM2-500M-Video-Instruct-GGUF:Q8_0}" \
   --host 127.0.0.1 \
   --port 8081 \
   --alias zydra-loRa \
