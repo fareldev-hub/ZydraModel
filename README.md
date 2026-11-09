@@ -1,5 +1,17 @@
 # Menjalankan Zydra
 
+<p>
+  <a href="https://huggingface.co/fareld3v-hub/zydra">
+    <img src="https://img.shields.io/badge/Model-zydra--loRa-355e3b?style=flat-square" alt="Model Zydra zydra-loRa">
+  </a>
+  <a href="https://huggingface.co/fareld3v-hub/zydra/tree/main">
+    <img src="https://img.shields.io/badge/Files-GGUF%20%2B%20mmproj-6c8b62?style=flat-square" alt="File model GGUF dan mmproj">
+  </a>
+  <a href="https://huggingface.co/fareld3v-hub/zydra/tree/main">
+    <img src="https://img.shields.io/badge/Download-size%20~572%20MiB-8ca579?style=flat-square" alt="Ukuran download Zydra dan mmproj sekitar 572 MiB">
+  </a>
+</p>
+
 ## Prasyarat
 
 - Docker Engine dan Docker Compose
@@ -108,3 +120,45 @@ resource model.
 - Jika port `8000` sudah digunakan, ubah `HOST_PORT` di `.env`.
 - Jika build gagal karena `MODEL_LICENSES/` tidak ditemukan, pulihkan direktori
   tersebut sebelum menjalankan `docker compose up -d --build`.
+
+## Statistik
+
+<p>
+  <a href="https://github.com/fareldev-hub/ZydraModel/graphs/commit-activity">
+    <img src="https://img.shields.io/github/commit-activity/t/fareldev-hub/ZydraModel?label=total%20commits&style=flat-square" alt="Aktivitas commit Zydra">
+  </a>
+  <a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
+    <img src="https://img.shields.io/github/contributors/fareldev-hub/ZydraModel?style=flat-square" alt="Kontributor Zydra">
+  </a>
+</p>
+
+<a href="https://github.com/fareldev-hub/ZydraModel/graphs/contributors">
+  <img src="https://github-profile-summary-cards.vercel.app/api/cards/profile-details?username=fareldev-hub&theme=github_dark" alt="Ringkasan kontribusi GitHub Farel Alfareza">
+</a>
+
+## Developer
+
+<div align="center">
+  <a href="https://github.com/fareldev-hub">
+    <img style="border-radius:10px;" src="https://github.com/fareldev-hub.png?size=160" width="112" alt="Avatar Farel Alfareza">
+  </a>
+  <h3>Farel Alfareza</h3>
+  <p>Pembuat dan pemelihara <strong>Zydra</strong>.</p>
+  <a href="https://github.com/fareldev-hub">
+    <img src="https://img.shields.io/badge/GitHub-fareldev--hub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub @fareldev-hub">
+  </a>
+  &nbsp;
+  <a href="https://tiktok.com/@logic__vibes">
+    <img src="https://img.shields.io/badge/TikTok-%40logic__vibes-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok @logic__vibes">
+  </a>
+  <p>Dukung pengembangan melalui:</p>
+  <a href="https://trakteer.id/farel_alfarez">
+    <img src="https://img.shields.io/badge/Via-Trakteer-BE1E2D?style=for-the-badge" alt="ThePort (@farel_alfarez) via Trakteer">
+  </a>
+  &nbsp;
+  <a href="https://saweria.co/fareldev">
+    <img src="https://img.shields.io/badge/Donasi%20via-Saweria-FFB000?style=for-the-badge" alt="Donasi via Saweria">
+  </a>
+  <br><br>
+  <sub>Terima kasih atas dukungan dan kontribusinya untuk Zydra.</sub>
+</div>
