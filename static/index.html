@@ -1356,6 +1356,23 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       return payload;
     }
 
+    function buildPreviewPayload(endpoint, form) {
+      const payload = {};
+      for (const field of endpoint.fields) {
+        if (field.type === "file" || field.type === "checkbox") continue;
+        const input = form.elements.namedItem(field.name);
+        const value = input.value.trim();
+        if (value) payload[field.name] = field.name === "apikey" ? "********" : value;
+      }
+      for (const field of endpoint.fields) {
+        if (field.type === "checkbox") {
+          const input = form.elements.namedItem(field.name);
+          if (input.checked) payload[field.name] = true;
+        }
+      }
+      return payload;
+    }
+
     function setKeyMessage(message, isError = false, retry = false) {
       keyMessage.replaceChildren(document.createTextNode(message));
       keyMessage.dataset.error = String(isError);
@@ -2013,10 +2030,22 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       form.noValidate = true;
       const preview = document.createElement("p");
       preview.className = "path-preview";
-      preview.innerHTML = '<i class="fa-solid fa-globe"></i> Request URL: <code>' + window.location.origin + endpoint.path + '</code>';
+      const updatePreview = () => {
+        let previewText = window.location.origin + endpoint.path;
+        const previewPayload = buildPreviewPayload(endpoint, form);
+        if (endpoint.method === "GET" && Object.keys(previewPayload).length > 0) {
+          previewText += "?" + new URLSearchParams(previewPayload).toString();
+        }
+        if (endpoint.method === "POST" && Object.keys(previewPayload).length > 0) {
+          previewText += " · Parameters: " + Object.keys(previewPayload).join(", ");
+        }
+        preview.innerHTML = '<i class="fa-solid fa-globe"></i> Request URL: <code>' + previewText + '</code>';
+      };
       const fields = document.createElement("div");
       fields.className = "field-grid";
       endpoint.fields.forEach((field) => addField(fields, field, endpoint.id));
+      fields.addEventListener("input", updatePreview);
+      fields.addEventListener("change", updatePreview);
       const actions = document.createElement("div");
       actions.className = "actions";
       const execute = document.createElement("button");
@@ -2030,6 +2059,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       actions.append(execute, cancel);
       const responseContainer = document.createElement("div");
       form.append(preview, fields, actions, responseContainer);
+      updatePreview();
       area.append(form);
       article.append(top, area);
       endpointLists[endpoint.method].append(article);
