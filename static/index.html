@@ -1134,11 +1134,11 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       { id: "ready", method: "GET", path: "/ready", title: "Periksa apakah model siap menerima request", auth: false, fields: [] },
       { id: "models", method: "GET", path: "/v1/models", title: "Daftar model yang tersedia", auth: true, fields: [] },
       { id: "prompt-get", method: "GET", path: "/v1/prompt", title: "Prompt melalui query string", auth: true, fields: [
-        { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi; dikirim sebagai parameter apikey pada URL." },
+        { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi untuk verifikasi; dikirim sebagai parameter apikey dan header X-API-Key." },
         { name: "prompt", label: "prompt", type: "textarea", required: true, value: "Siapa namamu dan siapa pembuatmu?", note: "Prompt dikirim sebagai parameter query. Untuk keamanan, gunakan header X-API-Key bila memungkinkan." },
       ] },
       { id: "vision-get", method: "GET", path: "/v1/chat/vision", title: "Chat dengan gambar", auth: true, fields: [
-        { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi; dikirim melalui header X-API-Key." },
+        { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi untuk verifikasi; dikirim sebagai parameter apikey dan header X-API-Key." },
         { name: "model", label: "model", type: "text", value: "zydra-loRa", readonly: true, note: "Model layanan yang digunakan." },
         { name: "image_link", label: "image_link", type: "text", required: false, value: "", placeholder: "https://example.com/gambar.jpg", note: "Gunakan URL publik atau pilih file dari komputer di bawah (maksimal 10 MB)." },
         { name: "image_file", label: "Upload gambar", type: "file", required: false, accept: "image/jpeg,image/png,image/webp", note: "Format JPEG, PNG, atau WebP; URL dan upload tidak perlu diisi bersamaan." },

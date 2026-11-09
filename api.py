@@ -111,9 +111,6 @@ class LlamaServerChatModel:
         self.server_url = server_url
 
     def _generate(self, messages, tools, options, image_data=None):
-        if tools:
-            raise ValueError("Tool calling belum didukung oleh model vision ini")
-
         last_user_index = max(
             (index for index, message in enumerate(messages) if message["role"] == "user"),
             default=-1,
@@ -708,9 +705,9 @@ def vision_chat_get(
     stream: bool = Query(False),
     temperature: Optional[float] = Query(None, ge=0, le=2),
     max_tokens: Optional[int] = Query(None, gt=0),
+    apikey: Optional[str] = Query(None, description="API key untuk verifikasi request"),
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
-    query_api_key: Optional[str] = Query(None, alias="apikey"),
 ):
     return vision_chat(
         VisionChatRequest(
@@ -723,7 +720,7 @@ def vision_chat_get(
         ),
         authorization=authorization,
         x_api_key=x_api_key,
-        query_api_key=query_api_key,
+        query_api_key=apikey,
     )
 
 
@@ -808,16 +805,16 @@ def prompt(
 @app.get("/v1/prompt")
 def prompt_get(
     prompt_text: str = Query(..., alias="prompt", min_length=1, max_length=32000),
+    apikey: Optional[str] = Query(None, description="API key untuk verifikasi request"),
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None),
-    query_api_key: Optional[str] = Query(None, alias="apikey"),
 ):
-    require_api_key(authorization, x_api_key, query_api_key)
+    require_api_key(authorization, x_api_key, apikey)
     return generate_prompt_response(
         PromptRequest(prompt=prompt_text),
         authorization,
         x_api_key,
-        query_api_key,
+        apikey,
     )
 
 

@@ -200,6 +200,9 @@ curl http://localhost:8000/v1/chat/completions \
   -d '{"model":"zydra-loRa","messages":[{"role":"user","content":"Balas singkat: AI siap"}]}'
 ```
 
+Parameter `tools` dari client OpenAI-compatible seperti Open WebUI diabaikan
+karena model vision ini belum mendukung tool calling; chat teks tetap diproses.
+
 Route `GET /v1/chat/vision` menerima URL gambar publik dan caption opsional,
 lalu mengembalikan respons dalam format chat completion:
 
@@ -207,12 +210,15 @@ lalu mengembalikan respons dalam format chat completion:
 curl --get http://localhost:8000/v1/chat/vision \
   -H "X-API-Key: $ZYDRA_API_KEY" \
   --data-urlencode "image_link=https://example.com/gambar.jpg" \
+  --data-urlencode "apikey=$ZYDRA_API_KEY" \
   --data-urlencode "caption=Jelaskan isi gambar ini."
 ```
 
 URL harus mengarah langsung ke gambar JPEG, PNG, atau WebP publik berukuran
-maksimal 10 MB. Redirect dan alamat lokal/private ditolak. API key dikirim di
-header; nilai URL dan caption berada di query string dan dapat tercatat di access log.
+maksimal 10 MB. Redirect dan alamat lokal/private ditolak. API key dapat dikirim
+melalui header `X-API-Key` atau parameter query `apikey`; header tetap
+direkomendasikan karena parameter URL dapat tercatat di access log. Nilai URL
+dan caption berada di query string.
 
 Jawaban model muncul di `choices[0].message.content`. Endpoint `/health` dan
 `/status` tidak memerlukan password. Endpoint API lain memerlukan `AUTH` melalui
