@@ -1048,7 +1048,7 @@
           <div class="chat-topbar">
             <button class="chat-sidebar-toggle" id="chat-sidebar-toggle" type="button" aria-label="Buka riwayat"><i class="fa-solid fa-bars"></i></button>
             <div class="chat-model-label">
-            <div class="chat-model-copy"><strong>zydra-loRa</strong></div>
+            <div class="chat-model-copy"><strong id="chat-model-name">zydra-loRa</strong><span id="chat-model-mode">Chat teks</span></div>
             </div>
           </div>
           <div class="chat-messages is-empty" id="chat-transcript" role="log" aria-live="polite" aria-label="Percakapan"></div>
@@ -1125,7 +1125,7 @@
 
     <section class="examples" aria-labelledby="examples-title">
       <h2 id="examples-title"><i class="fa-solid fa-book-open" style="margin-right:6px;color:#7c3aed;"></i> Contoh penggunaan API</h2>
-      <p class="examples-intro">Semua route yang berinteraksi dengan model atau mengelola API key membutuhkan credential. Status layanan dapat diakses tanpa key. Gunakan API key pada header agar tidak bocor ke access log URL.</p>
+      <p class="examples-intro">Semua route yang berinteraksi dengan model atau mengelola API key membutuhkan credential. Status layanan dapat diakses tanpa key. Gunakan API key pada header agar tidak bocor ke access log URL. <strong>zydra-loRa</strong> hanya untuk chat teks; Kirim gambar ke <strong>/v1/chat/vision</strong> dengan model <strong>zydra-vision</strong>.</p>
       <div class="example-tabs" role="tablist" aria-label="Bahasa contoh">
         <button class="example-tab" type="button" role="tab" id="tab-node" aria-controls="example-node" aria-selected="true">
           <i class="fa-brands fa-node-js"></i> Node.js backend
@@ -1230,7 +1230,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       ] },
       { id: "vision-get", method: "GET", path: "/v1/chat/vision", title: "Chat dengan gambar", auth: true, fields: [
         { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi untuk verifikasi; dikirim sebagai parameter apikey dan header X-API-Key." },
-        { name: "model", label: "model", type: "text", value: "zydra-loRa", readonly: true, note: "Model layanan yang digunakan." },
+        { name: "model", label: "model", type: "text", value: "zydra-vision", readonly: true, note: "Khusus vision; zydra-loRa hanya untuk chat teks." },
         { name: "image_link", label: "image_link", type: "text", required: false, value: "", placeholder: "https://example.com/gambar.jpg", note: "Gunakan URL publik atau pilih file dari komputer di bawah (maksimal 10 MB)." },
         { name: "image_file", label: "Upload gambar", type: "file", required: false, accept: "image/jpeg,image/png,image/webp", note: "Format JPEG, PNG, atau WebP; URL dan upload tidak perlu diisi bersamaan." },
         { name: "caption", label: "caption", type: "textarea", required: false, value: "Jelaskan isi gambar ini.", note: "Pertanyaan atau instruksi tentang gambar." },
@@ -1239,7 +1239,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       ] },
       { id: "vision-post", method: "POST", path: "/v1/chat/vision", title: "Chat dengan gambar (JSON atau upload)", auth: true, fields: [
         { name: "apikey", label: "apikey", type: "password", required: true, value: "", placeholder: "API key", toggleVisibility: true, note: "Wajib diisi untuk verifikasi; dikirim melalui header X-API-Key." },
-        { name: "model", label: "model", type: "text", value: "zydra-loRa", readonly: true, note: "Model layanan yang digunakan." },
+        { name: "model", label: "model", type: "text", value: "zydra-vision", readonly: true, note: "Khusus vision; zydra-loRa hanya untuk chat teks." },
         { name: "image_link", label: "image_link", type: "text", required: false, value: "", placeholder: "https://example.com/gambar.jpg", note: "Isi URL publik atau pilih file upload." },
         { name: "image_file", label: "Upload gambar", type: "file", required: false, accept: "image/jpeg,image/png,image/webp", note: "Jika dipilih, file dikirim sebagai image_data base64." },
         { name: "caption", label: "caption", type: "textarea", required: false, value: "Jelaskan isi gambar ini.", note: "Pertanyaan atau instruksi tentang gambar." },
@@ -1271,6 +1271,8 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
     const chatHistory = document.getElementById("chat-history");
     const newChatButton = document.getElementById("new-chat-button");
     const chatImageName = document.getElementById("chat-image-name");
+    const chatModelName = document.getElementById("chat-model-name");
+    const chatModelMode = document.getElementById("chat-model-mode");
     const chatSidebarToggle = document.getElementById("chat-sidebar-toggle");
     const chatSidebarBackdrop = document.getElementById("chat-sidebar-backdrop");
     const modelStatusDot = document.getElementById("model-status-dot");
@@ -1300,13 +1302,24 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       });
     }
 
+    function updateChatModelMode() {
+      const hasImage = Boolean(chatImageInput.files[0]);
+      chatModelName.textContent = hasImage ? "zydra-vision" : "zydra-loRa";
+      chatModelMode.textContent = hasImage ? "Analisis gambar" : "Chat teks";
+      chatInput.placeholder = hasImage
+        ? "Tanya tentang gambar ini..."
+        : "Kirim pesan ke Zydra";
+    }
+
     chatImageInput.addEventListener("change", () => {
       const file = chatImageInput.files[0];
       chatImageName.textContent = file ? file.name : "";
       chatImageName.title = file ? file.name : "";
       chatStatus.textContent = "";
       chatStatus.dataset.error = "false";
+      updateChatModelMode();
     });
+    updateChatModelMode();
 
     document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -1821,8 +1834,11 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         const response = await fetch("/health", { cache: "no-store" });
         if (!response.ok) throw new Error("Status model tidak tersedia");
         const status = await response.json();
-        modelStatusDot.dataset.state = status.model_ready ? "ready" : "loading";
-        chatModelStatus.textContent = status.model_ready ? "Siap" : status.setup_message || "Memuat model...";
+        const ready = Boolean(status.model_ready && status.chat_ready && status.vision_ready);
+        modelStatusDot.dataset.state = ready ? "ready" : "loading";
+        chatModelStatus.textContent = ready
+          ? "zydra-loRa + zydra-vision siap"
+          : status.setup_message || "Memuat model...";
       } catch {
         modelStatusDot.dataset.state = "error";
         chatModelStatus.textContent = "Tidak terhubung";
@@ -1840,6 +1856,8 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       chatStatus.dataset.error = "false";
       chatImageInput.value = "";
       chatImageName.textContent = "";
+      chatImageName.title = "";
+      updateChatModelMode();
       chatInput.value = "";
       chatInput.style.height = "";
       renderConversationList();
@@ -1950,7 +1968,9 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         chatStatus.textContent = error.message;
         return;
       }
-      chatMessages.push({ role: "user", content: requestMessage });
+      const useVision = Boolean(imageData);
+      const messageSource = useVision ? "vision" : "chat";
+      chatMessages.push({ role: "user", content: requestMessage, source: messageSource });
       updateActiveConversationTitle();
       renderChatMessages();
       chatInput.value = "";
@@ -1960,23 +1980,35 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
       renderConversationList();
       chatSendButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
       chatStatus.dataset.error = "false";
-      chatStatus.textContent = "Zydra sedang menyiapkan jawaban...";
+      chatStatus.textContent = useVision
+        ? "zydra-vision sedang menganalisis gambar..."
+        : "zydra-loRa sedang menyiapkan jawaban...";
       try {
-        const response = await fetch("/v1/chat/completions", {
+        const endpoint = useVision ? "/v1/chat/vision" : "/v1/chat/completions";
+        const body = useVision
+          ? {
+              model: "zydra-vision",
+              caption: requestMessage,
+              image_data: imageData,
+              stream: true,
+            }
+          : {
+              model: "zydra-loRa",
+              messages: chatMessages
+                .filter((item) => item.source !== "vision")
+                .map(({ role, content }) => ({ role, content })),
+              stream: true,
+            };
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "X-API-Key": apiCredential,
           },
-          body: JSON.stringify({
-            model: "zydra-loRa",
-            messages: chatMessages,
-            stream: true,
-            ...(imageData ? { image_data: imageData } : {}),
-          }),
+          body: JSON.stringify(body),
         });
         const answer = await readChatCompletion(response);
-        chatMessages.push({ role: "assistant", content: answer });
+        chatMessages.push({ role: "assistant", content: answer, source: messageSource });
         renderChatMessages();
         chatStatus.textContent = "";
       } catch (error) {
@@ -1994,6 +2026,7 @@ print(response.json()["choices"][0]["message"]["content"])</code></pre>
         chatImageInput.value = "";
         chatImageName.textContent = "";
         chatImageName.title = "";
+        updateChatModelMode();
         renderConversationList();
         chatInput.focus();
       }

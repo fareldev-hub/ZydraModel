@@ -11,7 +11,18 @@ services:
       AUTH_FILE: ${AUTH_FILE:-/data/auth}
       API_KEYS_FILE: ${API_KEYS_FILE:-/data/database/api.json}
       HF_HOME: ${HF_HOME:-/data/model-cache}
+      # Vision: gambar saja (dengan mmproj otomatis dari -hf).
       HF_MODEL_REPO: "${HF_MODEL_REPO:-ggml-org/SmolVLM2-500M-Video-Instruct-GGUF:Q8_0}"
+      VISION_MODEL_REPO: "${VISION_MODEL_REPO:-${HF_MODEL_REPO:-ggml-org/SmolVLM2-500M-Video-Instruct-GGUF:Q8_0}}"
+      VISION_SERVER_URL: "http://127.0.0.1:8081"
+      VISION_CONTEXT_SIZE: ${VISION_CONTEXT_SIZE:-2048}
+      VISION_THREADS: ${VISION_THREADS:-4}
+      # Chat: teks saja, tanpa mmproj.
+      CHAT_MODEL_REPO: "${CHAT_MODEL_REPO:-fareld3v-hub/zydra}"
+      CHAT_MODEL_FILE: "${CHAT_MODEL_FILE:-zydra-loRa.gguf}"
+      CHAT_SERVER_URL: "http://127.0.0.1:8082"
+      CHAT_CONTEXT_SIZE: ${CHAT_CONTEXT_SIZE:-2048}
+      CHAT_THREADS: ${CHAT_THREADS:-4}
       RUN_LOCAL_MODEL: "true"
     ports:
       - "${HOST_PORT:-8000}:8000"

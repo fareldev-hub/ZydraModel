@@ -33,10 +33,20 @@ Build dan jalankan:
 docker compose up -d --build
 ```
 
-Compose menjalankan API dan `llama-server` dalam satu container `zydra`.
-Container mengunduh model dan projector gambar dari Hugging Face saat startup
-pertama. Cache unduhan disimpan pada volume Docker `llama-model-cache` agar
-tidak perlu mengunduh ulang saat container dimulai kembali.
+Compose menjalankan API dan **dua** `llama-server` dalam satu container `zydra`:
+
+| Model | Port internal | Kegunaan |
+| --- | --- | --- |
+| `zydra-vision` (SmolVLM2 + mmproj) | `127.0.0.1:8081` | Hanya `/v1/chat/vision` (gambar) |
+| `zydra-loRa` | `127.0.0.1:8082` | Hanya `/v1/chat/completions` dan `/v1/prompt` (teks) |
+
+Pemisahan ini mencegah model vision ikut menjawab chat teks (dan sebaliknya),
+sehingga jawaban tidak mudah melenceng. `zydra-loRa` sengaja dijalankan dengan
+`--no-mmproj`, jadi tidak menerima gambar. Container mengunduh kedua model dari
+Hugging Face saat startup pertama. Cache unduhan disimpan pada volume Docker
+`llama-model-cache` agar tidak perlu mengunduh ulang saat container dimulai
+kembali. Halaman chat otomatis memakai `zydra-vision` saat ada gambar yang
+dilampirkan, dan `zydra-loRa` untuk percakapan teks biasa.
 
 Pantau proses startup:
 
@@ -44,7 +54,7 @@ Pantau proses startup:
 docker compose logs -f zydra
 ```
 
-Model siap saat log menampilkan `Server llama.cpp dan model Hugging Face siap.`
+Model siap saat log menampilkan `Model vision zydra-vision dan model chat zydra-loRa siap.`
 Periksa status dengan:
 
 ```sh
@@ -68,24 +78,38 @@ docker compose up -d
 
 ## Konfigurasi
 
-Default `HF_MODEL_REPO` memakai pasangan SmolVLM2 Q8_0 dengan projector gambar
-yang kompatibel. Jika mengganti repository, pastikan GGUF utama dan `mmproj`
-berasal dari pasangan yang cocok.
+`VISION_MODEL_REPO`/`HF_MODEL_REPO` memakai pasangan SmolVLM2 Q8_0 dengan
+projector gambar yang kompatibel. Jika mengganti repository vision, pastikan
+GGUF utama dan `mmproj` berasal dari pasangan yang cocok. `CHAT_MODEL_REPO`
+memakai `fareld3v-hub/zydra`, dengan file GGUF `zydra-loRa.gguf`.
 
 | Variabel | Fungsi | Default |
 | --- | --- | --- |
 | `AUTH` | Password admin API dan halaman chat | Contoh di `.env.example` |
 | `HOST_PORT` | Port lokal yang dibuka di browser | `8000` |
-| `HF_MODEL_REPO` | Repository dan quantization model | `ggml-org/SmolVLM2-500M-Video-Instruct-GGUF:Q8_0` |
-| `MODEL_CONTEXT_SIZE` | Ukuran konteks model | `2048` |
-| `MODEL_THREADS` | Jumlah thread CPU | `4` |
+| `VISION_MODEL_REPO` | Repository model vision (+ mmproj otomatis) | `ggml-org/SmolVLM2-500M-Video-Instruct-GGUF:Q8_0` |
+| `VISION_SERVER_URL` | Alamat server llama.cpp vision | `http://127.0.0.1:8081` |
+| `VISION_CONTEXT_SIZE` | Ukuran konteks model vision | `2048` |
+| `VISION_THREADS` | Jumlah thread CPU model vision | `4` |
+| `CHAT_MODEL_REPO` | Repository model chat teks | `fareld3v-hub/zydra` |
+| `CHAT_MODEL_FILE` | File GGUF chat | `zydra-loRa.gguf` |
+| `CHAT_SERVER_URL` | Alamat server llama.cpp chat | `http://127.0.0.1:8082` |
+| `CHAT_CONTEXT_SIZE` | Ukuran konteks model chat | `2048` |
+| `CHAT_THREADS` | Jumlah thread CPU model chat | `4` |
+| `HF_MODEL_REPO`, `MODEL_CONTEXT_SIZE`, `MODEL_THREADS` | Fallback lama untuk pengaturan vision | lihat `.env.example` |
 
-API tersedia pada port `HOST_PORT`. `llama-server` hanya mendengarkan pada
-`127.0.0.1:8081` di dalam container.
+API tersedia pada port `HOST_PORT`. Kedua `llama-server` hanya mendengarkan pada
+`127.0.0.1` di dalam container (port `8081` untuk vision, `8082` untuk chat) dan
+tidak diekspos ke host.
+
+`zydra-loRa` menolak `image_data` pada `/v1/chat/completions` dengan HTTP 422,
+dan `/v1/chat/vision` menolak model `zydra-loRa` dengan HTTP 400. Gunakan
+`zydra-vision` untuk semua request gambar. `GET /health` menampilkan status
+masing-masing model melalui `chat_ready`, `vision_ready`, dan `models`.
 
 ## Uji Chat API
 
-Setelah `/ready` mengembalikan HTTP 200, uji endpoint chat:
+Setelah `/ready` mengembalikan HTTP 200, uji endpoint chat teks (`zydra-loRa`):
 
 ```sh
 set -a
@@ -98,25 +122,41 @@ curl http://localhost:8000/v1/chat/completions \
   -d '{"model":"zydra-loRa","messages":[{"role":"user","content":"Balas singkat: server siap"}]}'
 ```
 
+Uji endpoint vision (`zydra-vision`) dengan URL gambar publik:
+
+```sh
+curl "http://localhost:8000/v1/chat/vision?image_link=https%3A%2F%2Fexample.com%2Fgambar.jpg&caption=Apa%20yang%20terlihat%20di%20gambar%20ini%3F" \
+  -H "Authorization: Bearer $AUTH"
+```
+
+Atau kirim `image_data` (data URL base64) lewat POST `/v1/chat/vision` dengan
+`"model": "zydra-vision"`. Jangan mengirim gambar ke `/v1/chat/completions`.
+
 ## Deploy ke Railway
 
 1. Buat satu service dari repository ini dan gunakan `Dockerfile`.
 2. Tambahkan volume dengan mount path `/data`.
 3. Atur `AUTH` dengan password kuat dan pastikan `HF_MODEL_REPO` valid.
 4. Buat public domain untuk service API.
-5. Buka `/ready` dan tunggu sampai mengembalikan HTTP 200.
+5. Buka `/ready` dan tunggu sampai mengembalikan HTTP 200 (artinya kedua model siap).
 
-Entrypoint mengunduh dan menjalankan model serta API dalam satu container.
-Jangan buat service `llama` terpisah. Hapus variabel lama `MODEL_SERVER_URL` jika
-masih ada. Gunakan `MODEL_CONTEXT_SIZE` dan `MODEL_THREADS` untuk mengatur
-resource model.
+Entrypoint mengunduh dan menjalankan kedua model serta API dalam satu container.
+Jangan buat service `llama` terpisah. Variabel lama `MODEL_SERVER_URL` masih
+diterima sebagai alias untuk server vision, tetapi sebaiknya gunakan
+`VISION_SERVER_URL` dan `CHAT_SERVER_URL`. Atur resource lewat
+`VISION_CONTEXT_SIZE`/`VISION_THREADS` dan `CHAT_CONTEXT_SIZE`/`CHAT_THREADS`.
+Pastikan ukuran container cukup untuk memuat dua model sekaligus.
 
 ## Troubleshooting
 
 - Jika `/ready` mengembalikan HTTP 503, tunggu unduhan pertama dan periksa
-  `docker compose logs -f zydra`.
+  `docker compose logs -f zydra`. Periksa juga `chat_ready` dan `vision_ready`
+  pada `/health` untuk mengetahui model mana yang belum siap.
 - Jika log menyebut dimensi `mmproj` tidak cocok, gunakan pasangan GGUF dan
-  projector yang kompatibel.
+  projector yang kompatibel pada `VISION_MODEL_REPO`.
+- Jika chat menolak gambar, itu disengaja: kirim ke `/v1/chat/vision` dengan
+  `model: "zydra-vision"`.
+- Jika vision menolak `model: "zydra-loRa"`, ganti ke `zydra-vision`.
 - Jika port `8000` sudah digunakan, ubah `HOST_PORT` di `.env`.
 - Jika build gagal karena `MODEL_LICENSES/` tidak ditemukan, pulihkan direktori
   tersebut sebelum menjalankan `docker compose up -d --build`.
