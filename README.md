@@ -18,10 +18,19 @@
 - Koneksi internet untuk unduhan model pertama
 - Direktori `MODEL_LICENSES/` tersedia saat build image
 
+## Clone Repository
+
+Clone repository ini terlebih dahulu, lalu masuk ke direktori hasil clone:
+
+```sh
+git clone https://github.com/fareldev-hub/ZydraModel.git
+cd ZydraModel
+```
+
 ## Jalankan Lokal
 
-Dari root repository, salin konfigurasi contoh dan ubah `AUTH` pada `.env`
-menjadi password yang kuat. Jangan commit file `.env`.
+Dari root repository hasil clone, salin konfigurasi contoh dan ubah `AUTH` pada
+`.env` menjadi password yang kuat. Jangan commit file `.env`.
 
 ```sh
 cp .env.example .env
